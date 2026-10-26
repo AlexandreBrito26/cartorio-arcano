@@ -1,4 +1,5 @@
 import { useEffect, useState, type Dispatch } from 'react';
+import { playResult } from '../game/audio';
 import { DENY_LABEL } from '../game/rules';
 import type { Action, GameState } from '../game/state';
 import type { Applicant, ViolationCode } from '../game/types';
@@ -52,6 +53,10 @@ export function Counter({ state, dispatch }: Props) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [playing, asking, dispatch]);
+
+  useEffect(() => {
+    if (result) playResult(result.decision.kind, result.verdict);
+  }, [result]);
 
   if (!applicant) return null;
 

@@ -32,6 +32,8 @@ Deploy na Vercel: importe o repositório e use os padrões do Vite (build `npm r
 
 O progresso (dia e moedas) é salvo no `localStorage` ao fim de cada dia.
 
+Os sons (carimbo, moedinha, zumbido de infração) são sintetizados com Web Audio, sem arquivos de áudio. O botão no canto superior direito liga e desliga o som, e a escolha fica salva.
+
 ## Estrutura
 
 ```
@@ -43,6 +45,7 @@ src/
     generator.ts    gera a fila do dia injetando falhas controladas
     state.ts        reducer do jogo (title, briefing, playing, result, dayEnd, ending)
     storage.ts      save no localStorage
+    audio.ts        efeitos sonoros (Web Audio) e preferência de mudo
     rng.ts          gerador pseudoaleatório com seed
     game.test.ts    testes
   components/       Portrait (SVG), Documents, RuleBook, Counter, Screens
@@ -56,5 +59,5 @@ Ponto central do design: `evaluate()` calcula a verdade a partir dos documentos 
 - Regra nova por dia: item contrabandeado, taxa de entrada, documento extra por espécie.
 - Relógio do dia (tempo limite) e fila que cresce.
 - Eventos de história com escolhas (suborno, pedido de ajuda) que afetam o saldo.
-- Sons de carimbo (Web Audio) e efeito de vela tremeluzindo.
+- Efeito de vela tremeluzindo e música ambiente.
 - Modo infinito depois do dia 5, com dificuldade crescente.

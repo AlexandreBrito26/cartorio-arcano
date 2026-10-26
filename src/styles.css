@@ -136,6 +136,21 @@ kbd {
   color: #ff8a96;
 }
 
+.mute-btn {
+  margin-left: auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #ffffff2a;
+  background: #ffffff0d;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.mute-btn:hover {
+  background: #ffffff1c;
+}
+
 /* ---------- telas (título, briefing, fim de dia) ---------- */
 
 .screen {

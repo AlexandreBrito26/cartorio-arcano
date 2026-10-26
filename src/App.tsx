@@ -1,12 +1,19 @@
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { Counter } from './components/Counter';
 import { Briefing, DayEnd, Ending, Title } from './components/Screens';
+import { isMuted, setMuted } from './game/audio';
 import { GAME_YEAR, MAX_DAY, formatDate } from './game/constants';
 import { createInitialState, reducer } from './game/state';
 import { persistSave } from './game/storage';
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
+  const [muted, setMutedState] = useState(isMuted);
+
+  const toggleSound = () => {
+    setMuted(!muted);
+    setMutedState(!muted);
+  };
 
   useEffect(() => {
     persistSave(state.save);
@@ -52,6 +59,16 @@ export default function App() {
             )}
           </dl>
         )}
+        <button
+          type="button"
+          className="mute-btn"
+          aria-pressed={muted}
+          aria-label={muted ? 'Ligar o som' : 'Desligar o som'}
+          title={muted ? 'Som desligado' : 'Som ligado'}
+          onClick={toggleSound}
+        >
+          {muted ? '🔇' : '🔊'}
+        </button>
       </header>
 
       {state.phase === 'title' && <Title state={state} dispatch={dispatch} />}

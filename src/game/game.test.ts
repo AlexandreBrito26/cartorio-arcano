@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { isMuted, playResult, setMuted } from './audio';
 import { MAX_DAY, formatDate, getDayRules } from './constants';
 import { buildApplicant, generateDay, mutateName } from './generator';
 import { createRng } from './rng';
@@ -99,6 +100,18 @@ describe('julgamento', () => {
     expect(judge(violation, { kind: 'deny', reason: 'NOME_DIVERGENTE' }).verdict).toBe('perfect');
     expect(judge(violation, { kind: 'deny', reason: 'DOC_VENCIDO' }).verdict).toBe('partial');
     expect(judge([], { kind: 'deny', reason: 'DOC_VENCIDO' }).verdict).toBe('wrong');
+  });
+});
+
+describe('áudio', () => {
+  it('não quebra fora do navegador e respeita o mudo', () => {
+    expect(() => playResult('approve', 'perfect')).not.toThrow();
+    expect(() => playResult('deny', 'wrong')).not.toThrow();
+    setMuted(true);
+    expect(isMuted()).toBe(true);
+    expect(() => playResult('deny', 'partial')).not.toThrow();
+    setMuted(false);
+    expect(isMuted()).toBe(false);
   });
 });
 
