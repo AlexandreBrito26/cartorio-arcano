@@ -1,8 +1,11 @@
 import { useEffect, useReducer, useState } from 'react';
 import { Counter } from './components/Counter';
+import { Cutscene } from './components/Cutscene';
+import { Logo } from './components/Logo';
 import { Briefing, DayEnd, Ending, Title } from './components/Screens';
 import { isMuted, setMuted } from './game/audio';
 import { GAME_YEAR, MAX_DAY, formatDate } from './game/constants';
+import { INTRO_SCENES } from './game/cutscene';
 import { createInitialState, reducer } from './game/state';
 import { persistSave } from './game/storage';
 
@@ -24,8 +27,11 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <span className="brand">✦ Cartório Arcano</span>
-        {state.phase !== 'title' && state.phase !== 'ending' && (
+        <span className="brand">
+          <Logo size={28} />
+          Cartório Arcano
+        </span>
+        {state.phase !== 'title' && state.phase !== 'intro' && state.phase !== 'ending' && (
           <dl className="hud">
             <div>
               <dt>Dia</dt>
@@ -72,6 +78,9 @@ export default function App() {
       </header>
 
       {state.phase === 'title' && <Title state={state} dispatch={dispatch} />}
+      {state.phase === 'intro' && (
+        <Cutscene scenes={INTRO_SCENES} onDone={() => dispatch({ type: 'INTRO_DONE' })} />
+      )}
       {state.phase === 'briefing' && <Briefing state={state} dispatch={dispatch} />}
       {inGame && <Counter state={state} dispatch={dispatch} />}
       {state.phase === 'dayEnd' && <DayEnd state={state} dispatch={dispatch} />}
