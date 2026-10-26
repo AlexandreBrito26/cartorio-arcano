@@ -33,6 +33,8 @@ Deploy na Vercel: importe o repositório e use os padrões do Vite (build `npm r
 
 O progresso (dia e moedas) é salvo no `localStorage` ao fim de cada dia.
 
+As partículas (brasas no título e na cutscene, névoa nas cenas externas) usam **PixiJS**, carregado sob demanda e desligado com movimento reduzido.
+
 Os sons (carimbo, moedinha, zumbido de infração) são sintetizados com Web Audio, sem arquivos de áudio. O botão no canto superior direito liga e desliga o som, e a escolha fica salva.
 
 ## Estrutura
@@ -49,7 +51,7 @@ src/
     audio.ts        efeitos sonoros (Web Audio) e preferência de mudo
     rng.ts          gerador pseudoaleatório com seed
     game.test.ts    testes
-  components/       Portrait (SVG), Documents, RuleBook, Counter, Screens, Logo, Cutscene, SceneArt
+  components/       Portrait (SVG), Documents, RuleBook, Counter, Screens, Logo, Cutscene, SceneArt, Ambience (PixiJS)
   game/cutscene.ts  roteiro da abertura (cenas e textos)
 public/favicon.svg  ícone da aba
   App.tsx, styles.css, main.tsx

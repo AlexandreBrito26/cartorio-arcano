@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TYPE_SPEED, type CutsceneScene } from '../game/cutscene';
 import { playStamp } from '../game/audio';
+import { Ambience } from './Ambience';
 import { SceneArt } from './SceneArt';
 
 interface Props {
@@ -86,6 +87,7 @@ export function Cutscene({ scenes, onDone, doneLabel = 'Abrir o cartório' }: Pr
     <main className="screen cutscene" aria-label="Abertura">
       <div className="cutscene-frame" onClick={advance}>
         <SceneArt key={scene.art} kind={scene.art} />
+        <Ambience key={scene.art} mood={scene.art === 'road' || scene.art === 'gate' ? 'mist' : 'embers'} count={scene.art === 'road' || scene.art === 'gate' ? 10 : 34} />
         <div className="cutscene-vignette" />
       </div>
 

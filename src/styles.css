@@ -878,6 +878,32 @@ kbd {
   to { transform: rotate(360deg); }
 }
 
+/* ---------- partículas (PixiJS) ---------- */
+
+.ambience {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ambience canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ambience-page {
+  position: fixed;
+  z-index: 0;
+  opacity: 0.8;
+}
+
+.title-screen > :not(.ambience) {
+  position: relative;
+  z-index: 1;
+}
+
 /* ---------- cutscene ---------- */
 
 .cutscene {
