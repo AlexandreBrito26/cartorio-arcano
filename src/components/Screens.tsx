@@ -1,5 +1,7 @@
 import type { Dispatch } from 'react';
 import { MAX_DAY, formatDate } from '../game/constants';
+import { Ambience } from './Ambience';
+import { Logo } from './Logo';
 import { ruleText } from '../game/rules';
 import type { Action, GameState } from '../game/state';
 
@@ -11,6 +13,8 @@ interface Props {
 export function Title({ state, dispatch }: Props) {
   return (
     <main className="screen title-screen">
+      <Ambience className="ambience-page" count={46} />
+      <Logo size={132} className="title-logo" title="Logo do Cartório Arcano" />
       <p className="eyebrow">Um jogo de carimbos e papelada</p>
       <h1>Cartório Arcano</h1>
       <p className="lead">

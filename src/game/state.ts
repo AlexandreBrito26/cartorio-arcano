@@ -4,7 +4,7 @@ import { evaluate, judge } from './rules';
 import { loadSave, type SaveData } from './storage';
 import type { Applicant, Decision, DecisionResult, DayRules } from './types';
 
-export type Phase = 'title' | 'briefing' | 'playing' | 'result' | 'dayEnd' | 'ending';
+export type Phase = 'title' | 'intro' | 'briefing' | 'playing' | 'result' | 'dayEnd' | 'ending';
 
 export interface DayStats {
   correct: number;
@@ -30,6 +30,7 @@ export interface GameState {
 export type Action =
   | { type: 'NEW_GAME' }
   | { type: 'CONTINUE' }
+  | { type: 'INTRO_DONE' }
   | { type: 'START_DAY'; seed: number }
   | { type: 'DECIDE'; decision: Decision }
   | { type: 'NEXT' }
@@ -64,7 +65,11 @@ export const createInitialState = (): GameState => freshGame(loadSave());
 export function reducer(state: GameState, action: Action): GameState {
   switch (action.type) {
     case 'NEW_GAME':
-      return { ...freshGame(state.save), phase: 'briefing' };
+      return { ...freshGame(state.save), phase: 'intro' };
+
+    case 'INTRO_DONE':
+      if (state.phase !== 'intro') return state;
+      return { ...state, phase: 'briefing' };
 
     case 'CONTINUE': {
       if (!state.save) return state;
