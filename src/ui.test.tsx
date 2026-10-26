@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { Counter } from './components/Counter';
 import { Cutscene } from './components/Cutscene';
 import { Logo } from './components/Logo';
-import { Briefing, DayEnd, Ending, Title } from './components/Screens';
+import { Briefing, DayEnd, Ending, EventScreen, Title } from './components/Screens';
 import { MAX_DAY } from './game/constants';
 import { INTRO_SCENES } from './game/cutscene';
 import { createInitialState, reducer, type GameState } from './game/state';
@@ -29,6 +29,12 @@ describe('renderização das telas', () => {
       s = reducer(s, { type: 'START_DAY', seed: day * 991 });
 
       while (s.phase === 'playing') {
+        if (s.index >= s.arrived) {
+          // Ainda ninguém no balcão: o relógio avança até o próximo chegar.
+          expect(render(<Counter state={s} dispatch={noop} />)).toContain('Ninguém no balcão');
+          s = reducer(s, { type: 'TICK' });
+          continue;
+        }
         expect(render(<Counter state={s} dispatch={noop} />)).toContain('Aprovar');
 
         // Alterna entre aprovar e negar para exercitar os dois caminhos.
@@ -48,6 +54,10 @@ describe('renderização das telas', () => {
       // Garante que o dia seguinte seja jogável mesmo com saldo baixo.
       s = { ...s, coins: Math.max(s.coins, 0) };
       s = reducer(s, { type: 'NEXT_DAY' });
+      if (s.phase === 'event') {
+        expect(render(<EventScreen state={s} dispatch={noop} />)).toContain('Evento do dia');
+        s = reducer(s, { type: 'EVENT_DONE' });
+      }
     }
 
     expect(s.phase).toBe('ending');
@@ -75,5 +85,15 @@ describe('logo e cutscene', () => {
     expect(reducer(reducer(base, { type: 'NEW_GAME' }), { type: 'START_DAY', seed: 1 }).phase).toBe('intro');
     const withSave = { ...base, save: { day: 3, coins: 20 } };
     expect(reducer(withSave, { type: 'CONTINUE' }).phase).toBe('briefing');
+  });
+});
+
+describe('Diário do Cartório', () => {
+  it('mostra verbetes abertos e lacra os dos dias futuros', async () => {
+    const { Diary } = await import('./components/Diary');
+    const html = render(<Diary reachedDay={1} onClose={noop} />);
+    expect(html).toContain('Diário do Cartório');
+    expect(html).toContain('A subida das Brumas');
+    expect(html).toContain('Verbete lacrado');
   });
 });

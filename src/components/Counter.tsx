@@ -2,8 +2,8 @@ import { useEffect, useState, type Dispatch } from 'react';
 import { playResult } from '../game/audio';
 import { DENY_LABEL } from '../game/rules';
 import type { Action, GameState } from '../game/state';
-import type { Applicant, ViolationCode } from '../game/types';
-import { IdentityDoc, PassDoc, SealDoc } from './Documents';
+import type { Applicant, DayRules, ViolationCode } from '../game/types';
+import { BaggageDoc, FeeDoc, IdentityDoc, PassDoc, SealDoc, SpeciesCert } from './Documents';
 import { Portrait } from './Portrait';
 import { RuleBook } from './RuleBook';
 
@@ -13,7 +13,7 @@ interface Props {
 }
 
 /** A mesa de um viajante. Remontada a cada viajante para limpar as marcações. */
-function Desk({ applicant }: { applicant: Applicant }) {
+function Desk({ applicant, rules }: { applicant: Applicant; rules: DayRules }) {
   const [marks, setMarks] = useState<ReadonlySet<string>>(new Set());
 
   const onToggle = (id: string) =>
@@ -25,18 +25,25 @@ function Desk({ applicant }: { applicant: Applicant }) {
 
   const { identity, pass, seal } = applicant;
   const props = { marks, onToggle };
+  const has = (code: ViolationCode) => rules.active.includes(code);
 
   return (
     <div className="docs">
       {identity && <IdentityDoc card={identity} {...props} />}
       {pass && <PassDoc pass={pass} {...props} />}
       {seal && <SealDoc seal={seal} {...props} />}
+      {has('BAGAGEM_PROIBIDA') && <BaggageDoc items={applicant.baggage} {...props} />}
+      {has('TAXA_NAO_PAGA') && <FeeDoc paid={applicant.fee} {...props} />}
+      {has('ESPECIE_SEM_DOC') && applicant.speciesDoc && (
+        <SpeciesCert doc={applicant.speciesDoc} {...props} />
+      )}
     </div>
   );
 }
 
 export function Counter({ state, dispatch }: Props) {
-  const applicant = state.queue[state.index];
+  // Só há viajante no balcão depois que ele chega à fila.
+  const applicant = state.index < state.arrived ? state.queue[state.index] : undefined;
   const [asking, setAsking] = useState(false);
   const playing = state.phase === 'playing';
   const result = state.result;
@@ -58,7 +65,22 @@ export function Counter({ state, dispatch }: Props) {
     if (result) playResult(result.decision.kind, result.verdict);
   }, [result]);
 
-  if (!applicant) return null;
+  // O relógio só corre enquanto o dia está em andamento (não durante o resultado).
+  useEffect(() => {
+    if (state.phase !== 'playing') return;
+    const id = window.setInterval(() => dispatch({ type: 'TICK' }), 1000);
+    return () => window.clearInterval(id);
+  }, [state.phase, dispatch]);
+
+  if (!applicant) {
+    return (
+      <main className="counter">
+        <section className="window" aria-label="Balcão vazio">
+          <p className="bubble">Ninguém no balcão. Os próximos viajantes ainda estão a caminho.</p>
+        </section>
+      </main>
+    );
+  }
 
   const deny = (reason: ViolationCode) => {
     setAsking(false);
@@ -78,7 +100,7 @@ export function Counter({ state, dispatch }: Props) {
 
       <section className="desk" aria-label="Mesa de documentos">
         <h2 className="visually-hidden">Documentos na mesa</h2>
-        <Desk key={applicant.id} applicant={applicant} />
+        <Desk key={applicant.id} applicant={applicant} rules={state.rules} />
         {result && (
           <div className={`stamp ${result.decision.kind === 'approve' ? 'stamp-ok' : 'stamp-no'}`} aria-hidden="true">
             {stampLabel}

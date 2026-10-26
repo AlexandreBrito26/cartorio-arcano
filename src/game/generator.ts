@@ -1,5 +1,8 @@
 import {
   AGE_RANGE,
+  BANNED_ITEMS,
+  ENTRY_FEE,
+  HARMLESS_ITEMS,
   CLOAKS,
   EYES,
   FAKE_SYMBOLS,
@@ -25,6 +28,7 @@ import type {
   Look,
   Purpose,
   Species,
+  SpeciesDoc,
   TravelPass,
   ViolationCode,
 } from './types';
@@ -41,6 +45,9 @@ const FAULT_ORDER: ViolationCode[] = [
   'SELO_AUSENTE',
   'SELO_FALSO',
   'IDADE_INSUFICIENTE',
+  'BAGAGEM_PROIBIDA',
+  'TAXA_NAO_PAGA',
+  'ESPECIE_SEM_DOC',
 ];
 
 const isSealFault = (c: ViolationCode) => c === 'SELO_AUSENTE' || c === 'SELO_FALSO';
@@ -103,7 +110,10 @@ export function buildApplicant(
   const sealRule = rules.active.includes('SELO_AUSENTE');
   const needsWork = faults.some((f) => isSealFault(f) || f === 'IDADE_INSUFICIENTE');
 
-  const species = rng.pick(SPECIES);
+  let species = rng.pick(SPECIES);
+  if (faults.includes('ESPECIE_SEM_DOC') && species === 'Humano') {
+    species = rng.pick(SPECIES.filter((s) => s !== 'Humano'));
+  }
   const name = `${rng.pick(FIRST_NAMES)} ${rng.pick(LAST_NAMES)}`;
   const openRealms = REALMS.filter((r) => !rules.bannedRealms.includes(r));
   const realm = rng.pick(openRealms);
@@ -132,6 +142,13 @@ export function buildApplicant(
   const guild = rng.pick(GUILDS);
   let seal: GuildSeal | null =
     sealRule && purpose === 'Trabalho' ? { guild, symbol: GUILD_SYMBOLS[guild] } : null;
+
+  const baggage: string[] = rng.shuffle([...HARMLESS_ITEMS]).slice(0, rng.int(0, 2));
+  let fee = ENTRY_FEE;
+  let speciesDoc: SpeciesDoc | null =
+    species === 'Humano'
+      ? null
+      : { species, code: `${rng.int(100, 999)}-${rng.pick([...LETTERS])}${rng.pick([...LETTERS])}` };
 
   const ordered = [...faults].sort((a, b) => FAULT_ORDER.indexOf(a) - FAULT_ORDER.indexOf(b));
 
@@ -174,6 +191,19 @@ export function buildApplicant(
       case 'IDADE_INSUFICIENTE':
         if (identity) identity.birthYear = GAME_YEAR - rng.int(7, MIN_WORK_AGE - 1);
         break;
+      case 'BAGAGEM_PROIBIDA':
+        baggage.push(rng.pick(BANNED_ITEMS));
+        break;
+      case 'TAXA_NAO_PAGA':
+        fee = rng.int(0, ENTRY_FEE - 1);
+        break;
+      case 'ESPECIE_SEM_DOC':
+        if (speciesDoc) {
+          speciesDoc = rng.chance(0.5)
+            ? null
+            : { species: rng.pick(SPECIES.filter((s) => s !== species)), code: speciesDoc.code };
+        }
+        break;
     }
   }
 
@@ -184,6 +214,9 @@ export function buildApplicant(
     identity,
     pass,
     seal,
+    baggage,
+    fee,
+    speciesDoc,
   };
 }
 

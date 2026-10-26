@@ -1,4 +1,13 @@
-export type Species = 'Humano' | 'Elfo' | 'Anão' | 'Goblin' | 'Fada';
+export type Species =
+  | 'Humano'
+  | 'Elfo'
+  | 'Anão'
+  | 'Goblin'
+  | 'Fada'
+  | 'Draconato'
+  | 'Tritão'
+  | 'Golem'
+  | 'Espectro';
 
 export type Realm =
   | 'Vale Dourado'
@@ -6,7 +15,9 @@ export type Realm =
   | 'Floresta Sussurrante'
   | 'Montanhas de Ferro'
   | 'Pântano de Névoa'
-  | 'Reino das Cinzas';
+  | 'Reino das Cinzas'
+  | 'Abismo Azul'
+  | 'Planícies do Vento';
 
 export type Purpose = 'Visita' | 'Comércio' | 'Trabalho' | 'Estudo';
 
@@ -20,7 +31,10 @@ export type ViolationCode =
   | 'REINO_PROIBIDO'
   | 'SELO_AUSENTE'
   | 'SELO_FALSO'
-  | 'IDADE_INSUFICIENTE';
+  | 'IDADE_INSUFICIENTE'
+  | 'BAGAGEM_PROIBIDA'
+  | 'TAXA_NAO_PAGA'
+  | 'ESPECIE_SEM_DOC';
 
 export interface Look {
   species: Species;
@@ -54,6 +68,11 @@ export interface GuildSeal {
   symbol: string;
 }
 
+export interface SpeciesDoc {
+  species: Species;
+  code: string;
+}
+
 export interface Applicant {
   id: string;
   look: Look;
@@ -61,6 +80,12 @@ export interface Applicant {
   identity: IdentityCard | null;
   pass: TravelPass | null;
   seal: GuildSeal | null;
+  /** Itens declarados na bagagem. */
+  baggage: string[];
+  /** Moedas pagas no balcão como taxa de entrada. */
+  fee: number;
+  /** Documento da espécie (null para humanos). */
+  speciesDoc: SpeciesDoc | null;
 }
 
 export interface Violation {

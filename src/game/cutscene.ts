@@ -38,7 +38,7 @@ export const INTRO_SCENES: readonly CutsceneScene[] = [
     art: 'stamp',
     lines: [
       'Ela empurra o carimbo na sua direção. A fila já dobra a esquina.',
-      'Sua primeira semana começa agora.',
+      'Seu primeiro dia começa agora.',
     ],
   },
 ];

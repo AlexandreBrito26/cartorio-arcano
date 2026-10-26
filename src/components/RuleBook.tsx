@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   FINE,
   GAME_YEAR,
+  LATE_PENALTY,
   GUILDS,
   GUILD_SYMBOLS,
   REWARD_APPROVE,
@@ -81,6 +82,7 @@ export function RuleBook({ rules }: { rules: DayRules }) {
             <li>Negar com o motivo certo: <strong>+{REWARD_DENY}</strong></li>
             <li>Negar com o motivo errado: <strong>+{REWARD_DENY_PARTIAL}</strong></li>
             <li>Infração (decisão errada): <strong>−{FINE}</strong></li>
+            <li>Viajante sem atendimento quando o relógio zera: <strong>−{LATE_PENALTY}</strong></li>
             <li>Despesas do fim do dia: <strong>−{dailyExpenses(rules.day)}</strong></li>
           </ul>
         )}

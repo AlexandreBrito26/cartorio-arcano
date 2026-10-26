@@ -30,6 +30,10 @@ Deploy na Vercel: importe o repositório e use os padrões do Vite (build `npm r
 | 3 | Reino igual nos dois papéis e fronteira fechada para o Reino das Cinzas |
 | 4 | Passe de trabalho exige Selo de Guilda com o símbolo oficial |
 | 5 | Idade mínima para trabalhar e quarentena no Pântano de Névoa |
+| 6 | Bagagem: itens proibidos (contrabando) |
+| 7 | Taxa de entrada de 2 moedas, com recibo na mesa |
+| 8 | Documento da Espécie para quem não for humano |
+| 9 a 20 | Sem regras novas: mais viajantes, filas mais longas e fronteiras que se fecham (Abismo Azul, Planícies do Vento) |
 
 O progresso (dia e moedas) é salvo no `localStorage` ao fim de cada dia.
 

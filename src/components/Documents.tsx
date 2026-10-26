@@ -1,5 +1,5 @@
 import { GAME_YEAR, formatDate } from '../game/constants';
-import type { GuildSeal, IdentityCard, TravelPass } from '../game/types';
+import type { GuildSeal, IdentityCard, SpeciesDoc, TravelPass } from '../game/types';
 
 interface Marks {
   marks: ReadonlySet<string>;
@@ -79,6 +79,48 @@ export function SealDoc({ seal, marks, onToggle }: { seal: GuildSeal } & Marks) 
       >
         {seal.symbol}
       </button>
+    </article>
+  );
+}
+
+export function BaggageDoc({ items, ...m }: { items: string[] } & Marks) {
+  return (
+    <article className="doc doc-bag" aria-label="Bagagem declarada">
+      <header>
+        <h3>Bagagem declarada</h3>
+        <p>Itens conferidos na entrada</p>
+      </header>
+      {items.length === 0 ? (
+        <p className="muted">Sem bagagem.</p>
+      ) : (
+        items.map((item, i) => (
+          <Field key={`${i}-${item}`} id={`bag.${i}`} label={`Item ${i + 1}`} value={item} {...m} />
+        ))
+      )}
+    </article>
+  );
+}
+
+export function FeeDoc({ paid, ...m }: { paid: number } & Marks) {
+  return (
+    <article className="doc doc-fee" aria-label="Recibo de taxa">
+      <header>
+        <h3>Recibo de taxa</h3>
+        <p>Taxa de entrada</p>
+      </header>
+      <Field id="fee.paid" label="Pago no balcão" value={`${paid} moeda${paid === 1 ? '' : 's'}`} {...m} />
+    </article>
+  );
+}
+
+export function SpeciesCert({ doc, ...m }: { doc: SpeciesDoc } & Marks) {
+  return (
+    <article className="doc doc-species" aria-label="Documento da Espécie">
+      <header>
+        <h3>Documento da Espécie</h3>
+        <p>Registro nº {doc.code}</p>
+      </header>
+      <Field id="especie.species" label="Espécie" value={doc.species} {...m} />
     </article>
   );
 }

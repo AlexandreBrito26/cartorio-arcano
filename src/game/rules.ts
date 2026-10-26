@@ -1,4 +1,6 @@
 import {
+  BANNED_ITEMS,
+  ENTRY_FEE,
   FINE,
   GAME_YEAR,
   GUILD_SYMBOLS,
@@ -18,6 +20,9 @@ export const DENY_LABEL: Record<ViolationCode, string> = {
   SELO_AUSENTE: 'Selo ausente',
   SELO_FALSO: 'Selo falso',
   IDADE_INSUFICIENTE: 'Idade insuficiente',
+  BAGAGEM_PROIBIDA: 'Item proibido na bagagem',
+  TAXA_NAO_PAGA: 'Taxa não paga',
+  ESPECIE_SEM_DOC: 'Documento da espécie ausente',
 };
 
 /** Texto da regra, como aparece no Regulamento. */
@@ -39,6 +44,12 @@ export function ruleText(code: ViolationCode, rules: DayRules): string {
       return 'O símbolo do Selo deve ser o oficial da guilda (aba Selos).';
     case 'IDADE_INSUFICIENTE':
       return `Para trabalhar é preciso ter ${rules.minWorkAge} anos ou mais (ano corrente: ${GAME_YEAR}).`;
+    case 'BAGAGEM_PROIBIDA':
+      return `Nenhum destes itens pode entrar na bagagem: ${BANNED_ITEMS.join(', ')}.`;
+    case 'TAXA_NAO_PAGA':
+      return `Toda entrada paga ${ENTRY_FEE} moedas no balcão.`;
+    case 'ESPECIE_SEM_DOC':
+      return 'Quem não for humano precisa do Documento da Espécie, com a mesma espécie da Carta.';
   }
 }
 
@@ -109,6 +120,29 @@ export function evaluate(applicant: Applicant, rules: DayRules): Violation[] {
           detail: `Nascido em ${identity.birthYear}: tem ${age} anos (mínimo ${rules.minWorkAge}).`,
         });
       }
+    }
+  }
+
+  if (has('BAGAGEM_PROIBIDA')) {
+    const item = applicant.baggage.find((i) => BANNED_ITEMS.includes(i));
+    if (item) out.push({ code: 'BAGAGEM_PROIBIDA', detail: `Bagagem com item proibido: ${item}.` });
+  }
+
+  if (has('TAXA_NAO_PAGA') && applicant.fee < ENTRY_FEE) {
+    out.push({
+      code: 'TAXA_NAO_PAGA',
+      detail: `Pagou ${applicant.fee} moeda(s); a entrada custa ${ENTRY_FEE}.`,
+    });
+  }
+
+  if (has('ESPECIE_SEM_DOC') && applicant.look.species !== 'Humano') {
+    if (!applicant.speciesDoc) {
+      out.push({ code: 'ESPECIE_SEM_DOC', detail: 'Falta o Documento da Espécie.' });
+    } else if (applicant.speciesDoc.species !== applicant.look.species) {
+      out.push({
+        code: 'ESPECIE_SEM_DOC',
+        detail: `O documento diz "${applicant.speciesDoc.species}", mas o viajante é ${applicant.look.species}.`,
+      });
     }
   }
 

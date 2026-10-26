@@ -1,17 +1,37 @@
 import type { DayRules, Guild, Purpose, Realm, Species, ViolationCode } from './types';
 
 export const GAME_YEAR = 417;
-export const MAX_DAY = 5;
+export const MAX_DAY = 20;
 export const START_COINS = 30;
 export const MIN_WORK_AGE = 16;
+export const ENTRY_FEE = 2;
+
+/** Relógio: segundos por viajante previsto no dia (define o tempo limite). */
+export const SECONDS_PER_APPLICANT = 12;
+/** A cada quantos segundos chega um novo viajante à fila. */
+export const ARRIVAL_EVERY = 8;
+/** Viajantes que já estão na fila quando o dia começa. */
+export const START_QUEUE = 2;
+/** Moedas perdidas por viajante que o relógio deixou sem atendimento. */
+export const LATE_PENALTY = 2;
+
+/** Teto de viajantes por dia no plantão infinito. */
+export const INFINITE_MAX_APPLICANTS = 25;
+
+export const timeLimit = (applicants: number) => applicants * SECONDS_PER_APPLICANT;
+
+/** Itens que não podem entrar na bagagem. */
+export const BANNED_ITEMS = ['Pó de Brasa', 'Pergaminho Proibido', 'Ovo de Dragão', 'Essência de Sombra'];
+/** Itens comuns, sempre permitidos. */
+export const HARMLESS_ITEMS = ['Cantil de água', 'Pão amanhecido', 'Manual de Runas', 'Lanterna de bolso', 'Mapa dobrado'];
 
 export const REWARD_APPROVE = 6;
 export const REWARD_DENY = 8;
 export const REWARD_DENY_PARTIAL = 4;
 export const FINE = 6;
 
-/** Despesas do dia: velas, pergaminho e pão. */
-export const dailyExpenses = (day: number) => 12 + (day - 1) * 4;
+/** Despesas do dia: velas, pergaminho e pão. Sobem até o dia 8 e depois ficam estáveis. */
+export const dailyExpenses = (day: number) => 12 + Math.min(day - 1, 7) * 4;
 
 const BASE_TODAY = 100;
 
@@ -37,7 +57,9 @@ export function formatDate(n: number): string {
   return `${day} de ${MONTHS[month]}`;
 }
 
-export const SPECIES: readonly Species[] = ['Humano', 'Elfo', 'Anão', 'Goblin', 'Fada'];
+export const SPECIES: readonly Species[] = [
+  'Humano', 'Elfo', 'Anão', 'Goblin', 'Fada', 'Draconato', 'Tritão', 'Golem', 'Espectro',
+];
 
 export const REALMS: readonly Realm[] = [
   'Vale Dourado',
@@ -46,6 +68,8 @@ export const REALMS: readonly Realm[] = [
   'Montanhas de Ferro',
   'Pântano de Névoa',
   'Reino das Cinzas',
+  'Abismo Azul',
+  'Planícies do Vento',
 ];
 
 export const PURPOSES: readonly Purpose[] = ['Visita', 'Comércio', 'Trabalho', 'Estudo'];
@@ -68,6 +92,10 @@ export const AGE_RANGE: Record<Species, [number, number]> = {
   Anão: [16, 180],
   Goblin: [8, 55],
   Fada: [4, 90],
+  Draconato: [16, 120],
+  Tritão: [16, 200],
+  Golem: [1, 150],
+  Espectro: [16, 300],
 };
 
 export const FIRST_NAMES = [
@@ -88,6 +116,10 @@ export const SKINS: Record<Species, string[]> = {
   Anão: ['#e3b48c', '#c98f63', '#b57a50'],
   Goblin: ['#8fbf6a', '#74a85a', '#9bc47a'],
   Fada: ['#f7d6e0', '#d6c8f5', '#c8f0f0'],
+  Draconato: ['#b5523b', '#8f3f2e', '#c9793f'],
+  Tritão: ['#5fb3c4', '#3d8fa3', '#7fc8b8'],
+  Golem: ['#8a8a8f', '#6b6b72', '#9c9488'],
+  Espectro: ['#d8dce8', '#b9c2d9', '#c7bfe0'],
 };
 
 export const HAIRS = ['#2b1d17', '#5a3a22', '#8b5a2b', '#c9a24b', '#d8d8e0', '#7a3b6e', '#2f5d62'];
@@ -165,30 +197,131 @@ const DAYS: DayConfig[] = [
     applicants: 10,
     notes: ['Decreto atualizado: o Pântano de Névoa também está fechado (quarentena).'],
   },
+  {
+    headline: 'Bagagem sob suspeita',
+    story:
+      'Um comboio de mercadores chegou com malas que tilintam. O Conselho proibiu itens de contrabando na bagagem. "Abra tudo, aprendiz. Quem esconde algo costuma ter motivo."',
+    add: ['BAGAGEM_PROIBIDA'],
+    applicants: 9,
+  },
+  {
+    headline: 'Taxa de entrada',
+    story:
+      'O cofre das Brumas está vazio. A partir de hoje, toda entrada paga 2 moedas no balcão, e o recibo precisa estar na mesa.',
+    add: ['TAXA_NAO_PAGA'],
+    applicants: 10,
+  },
+  {
+    headline: 'Registro das espécies',
+    story:
+      'Criaturas de outros mundos começaram a chegar em massa. Todo viajante que não for humano precisa apresentar o Documento da Espécie, e a espécie tem de bater com a da Carta.',
+    add: ['ESPECIE_SEM_DOC'],
+    applicants: 10,
+  },
+  {
+    headline: 'Rumores de guerra',
+    story: 'Mensageiros falam de tropas nas montanhas. O Conselho pede atenção redobrada a quem vem do Vale Dourado e das Montanhas de Ferro.',
+    add: [],
+    applicants: 10,
+  },
+  {
+    headline: 'Filas de madrugada',
+    story: 'Os viajantes chegam antes do sol. Velas acesas, pés cansados e paciência curta. Mantenha o ritmo.',
+    add: [],
+    applicants: 11,
+  },
+  {
+    headline: 'O Abismo Azul fecha',
+    story: 'Marés estranhas tomam o Abismo Azul. A fronteira fecha por precaução até nova ordem.',
+    add: [],
+    banned: ['Abismo Azul'],
+    applicants: 11,
+  },
+  {
+    headline: 'Dias longos',
+    story: 'O balcão não para desde o amanhecer. A Mestra deixa um recado: "Quem tem pressa erra. Quem erra paga."',
+    add: [],
+    applicants: 12,
+  },
+  {
+    headline: 'Troca de mestres dos selos',
+    story: 'A Guilda trocou o responsável pelos selos. Confira cada símbolo com calma, porque os falsificadores também aprenderam.',
+    add: [],
+    applicants: 12,
+  },
+  {
+    headline: 'Festival das Brumas',
+    story: 'A cidade inteira vem para a festa, e a fila se estende pela rua. Muita gente, pouca paciência.',
+    add: [],
+    applicants: 13,
+  },
+  {
+    headline: 'Impostos novos',
+    story: 'O Conselho cobra mais dos mercadores de passagem. O balcão segue as mesmas regras, mas a fila só cresce.',
+    add: [],
+    applicants: 13,
+  },
+  {
+    headline: 'A Mestra adoece',
+    story: 'A Mestra Aurelha ficou de cama. Você responde por todo o balcão, com o carimbo na mão e o livro aberto.',
+    add: [],
+    applicants: 13,
+  },
+  {
+    headline: 'Contrabando organizado',
+    story: 'Uma rede de contrabando usa as Planícies do Vento como rota. Os guardas fecham a fronteira e pedem olhos atentos.',
+    add: [],
+    banned: ['Planícies do Vento'],
+    applicants: 14,
+  },
+  {
+    headline: 'Pressa do império',
+    story: 'Um emissário do império quer passar primeiro, sem fila. A Mestra avisa: "Passa quem tem papel. Ninguém mais."',
+    add: [],
+    applicants: 14,
+  },
+  {
+    headline: 'Véspera do desfecho',
+    story: 'Faltam poucos dias para o fim da campanha. Cada carimbo conta, e o livro do cartório já está quase cheio.',
+    add: [],
+    applicants: 15,
+  },
+  {
+    headline: 'O último carimbo',
+    story: 'Vinte dias depois, a fila dá a volta no quarteirão. A Mestra Aurelha assina o livro e entrega o carimbo para você.',
+    add: [],
+    applicants: 15,
+  },
 ];
 
 export function getDayRules(day: number): DayRules {
-  const index = Math.min(Math.max(day, 1), MAX_DAY) - 1;
+  const current = Math.max(day, 1);
+  const infinite = current > MAX_DAY;
+  const index = Math.min(current, MAX_DAY) - 1;
   const active: ViolationCode[] = [];
   let bannedRealms: Realm[] = [];
 
   for (let i = 0; i <= index; i++) {
     active.push(...DAYS[i].add);
-    if (DAYS[i].banned) bannedRealms = DAYS[i].banned!;
+    if (DAYS[i].banned) bannedRealms = [...new Set([...bannedRealms, ...DAYS[i].banned!])];
   }
 
   const config = DAYS[index];
+  // No plantão infinito, cada dia traz um viajante a mais, até o teto.
+  const extra = infinite ? current - MAX_DAY : 0;
 
   return {
-    day: index + 1,
-    today: BASE_TODAY + index,
-    applicants: config.applicants,
+    day: current,
+    today: BASE_TODAY + current - 1,
+    applicants: infinite ? Math.min(INFINITE_MAX_APPLICANTS, config.applicants + extra) : config.applicants,
     active,
     bannedRealms,
     minWorkAge: MIN_WORK_AGE,
-    headline: config.headline,
-    story: config.story,
-    newCodes: config.add,
-    notes: config.notes ?? [],
+    headline: infinite ? `Plantão, dia ${current}` : config.headline,
+    story: infinite
+      ? 'A campanha acabou, mas a fila não. Cada dia chega com mais viajantes e a mesma fronteira.'
+      : config.story,
+    newCodes: infinite ? [] : config.add,
+    notes: infinite ? [] : (config.notes ?? []),
   };
 }

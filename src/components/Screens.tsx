@@ -1,5 +1,6 @@
 import type { Dispatch } from 'react';
 import { MAX_DAY, formatDate } from '../game/constants';
+import { eventForDay } from '../game/events';
 import { Ambience } from './Ambience';
 import { Logo } from './Logo';
 import { ruleText } from '../game/rules';
@@ -15,11 +16,12 @@ export function Title({ state, dispatch }: Props) {
     <main className="screen title-screen">
       <Ambience className="ambience-page" count={46} />
       <Logo size={132} className="title-logo" title="Logo do Cartório Arcano" />
-      <p className="eyebrow">Um jogo de carimbos e papelada</p>
+      <p className="eyebrow">Um jogo de carimbos entre mundos</p>
       <h1>Cartório Arcano</h1>
       <p className="lead">
-        Nas Brumas, ninguém atravessa a fronteira sem papel. Confira Carta, Passe e Selo, siga o
-        Regulamento e decida quem entra. Cada decisão errada sai do seu bolso.
+        O cartório fica no entreposto entre mundos, onde humanos, elfos, dragões, golems e espectros
+        dependem do mesmo papel. Confira Carta, Passe e documentos da espécie, siga o Regulamento e
+        decida quem entra. Cada decisão errada sai do seu bolso.
       </p>
       <div className="actions">
         <button type="button" className="primary" autoFocus onClick={() => dispatch({ type: 'NEW_GAME' })}>
@@ -40,7 +42,7 @@ export function Briefing({ state, dispatch }: Props) {
   return (
     <main className="screen briefing">
       <p className="eyebrow">
-        Dia {rules.day} de {MAX_DAY} · {formatDate(rules.today)}
+        {rules.day > MAX_DAY ? `Plantão, dia ${rules.day}` : `Dia ${rules.day} de ${MAX_DAY}`} · {formatDate(rules.today)}
       </p>
       <h1>{rules.headline}</h1>
       <p className="lead">{rules.story}</p>
@@ -91,6 +93,9 @@ export function DayEnd({ state, dispatch }: Props) {
           <div><dt>Infrações</dt><dd>{stats.wrong}</dd></div>
           <div className="gain"><dt>Ganhos</dt><dd>+{stats.earned}</dd></div>
           <div className="loss"><dt>Multas</dt><dd>−{stats.fined}</dd></div>
+          {stats.lost > 0 && (
+            <div className="loss"><dt>Sem atendimento (relógio)</dt><dd>−{stats.lost}</dd></div>
+          )}
           <div className="loss"><dt>Despesas (velas, pergaminho, pão)</dt><dd>−{stats.expenses}</dd></div>
           <div className="total"><dt>Saldo</dt><dd>{coins}</dd></div>
         </dl>
@@ -117,16 +122,63 @@ export function Ending({ state, dispatch }: Props) {
       <h1>Aprendiz efetivado</h1>
       <p className="lead">
         A Mestra Aurelha guarda o caderno de inspeção e, pela primeira vez, sorri. “Carimbo firme,
-        olho atento. O balcão é seu.” Você encerra a semana com {state.coins} moedas no bolso.
+        olho atento. O balcão é seu.” Você encerra a campanha com {state.coins} moedas no bolso.
       </p>
       <div className="actions">
-        <button type="button" className="primary" autoFocus onClick={() => dispatch({ type: 'NEW_GAME' })}>
+        <button type="button" className="primary" autoFocus onClick={() => dispatch({ type: 'CONTINUE_INFINITE' })}>
+          Continuar no plantão
+        </button>
+        <button type="button" className="secondary" onClick={() => dispatch({ type: 'NEW_GAME' })}>
           Jogar de novo
         </button>
         <button type="button" className="secondary" onClick={() => dispatch({ type: 'TO_TITLE' })}>
           Menu inicial
         </button>
       </div>
+    </main>
+  );
+}
+
+export function EventScreen({ state, dispatch }: Props) {
+  const event = eventForDay(state.day);
+  if (!event) return null;
+  const answered = state.eventOutcome !== null;
+
+  return (
+    <main className="screen event">
+      <p className="eyebrow">Evento do dia {state.day}</p>
+      <h1>{event.title}</h1>
+      <section className="panel">
+        <p className="lead">{event.text}</p>
+
+        {answered ? (
+          <>
+            <p className="event-outcome">{state.eventOutcome}</p>
+            <div className="actions">
+              <button type="button" className="primary" autoFocus onClick={() => dispatch({ type: 'EVENT_DONE' })}>
+                Seguir para o dia {state.day}
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="actions">
+            {event.options.map((o, i) => {
+              const blocked = state.coins + o.delta < 0;
+              return (
+                <button
+                  key={o.label}
+                  type="button"
+                  className="secondary"
+                  disabled={blocked}
+                  onClick={() => dispatch({ type: 'CHOOSE_EVENT', option: i })}
+                >
+                  {o.label} <span className="delta">{o.delta >= 0 ? '+' : '−'}{Math.abs(o.delta)}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </main>
   );
 }

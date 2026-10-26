@@ -1,10 +1,20 @@
-import { MAX_DAY, START_COINS, dailyExpenses, getDayRules } from './constants';
+import {
+  ARRIVAL_EVERY,
+  LATE_PENALTY,
+  MAX_DAY,
+  START_COINS,
+  START_QUEUE,
+  dailyExpenses,
+  getDayRules,
+  timeLimit,
+} from './constants';
 import { generateDay } from './generator';
 import { evaluate, judge } from './rules';
 import { loadSave, type SaveData } from './storage';
+import { eventForDay } from './events';
 import type { Applicant, Decision, DecisionResult, DayRules } from './types';
 
-export type Phase = 'title' | 'intro' | 'briefing' | 'playing' | 'result' | 'dayEnd' | 'ending';
+export type Phase = 'title' | 'intro' | 'briefing' | 'event' | 'playing' | 'result' | 'dayEnd' | 'ending';
 
 export interface DayStats {
   correct: number;
@@ -13,6 +23,8 @@ export interface DayStats {
   earned: number;
   fined: number;
   expenses: number;
+  /** Moedas perdidas com viajantes que o relógio deixou sem atendimento. */
+  lost: number;
 }
 
 export interface GameState {
@@ -22,7 +34,13 @@ export interface GameState {
   rules: DayRules;
   queue: Applicant[];
   index: number;
+  /** Segundos decorridos no dia (o relógio conta só durante a fila). */
+  elapsed: number;
+  /** Quantos viajantes da fila já chegaram ao balcão. */
+  arrived: number;
   result: DecisionResult | null;
+  /** Texto da escolha feita no evento do dia (null enquanto não escolhe). */
+  eventOutcome: string | null;
   stats: DayStats;
   save: SaveData | null;
 }
@@ -35,6 +53,10 @@ export type Action =
   | { type: 'DECIDE'; decision: Decision }
   | { type: 'NEXT' }
   | { type: 'NEXT_DAY' }
+  | { type: 'TICK' }
+  | { type: 'CHOOSE_EVENT'; option: number }
+  | { type: 'EVENT_DONE' }
+  | { type: 'CONTINUE_INFINITE' }
   | { type: 'TO_TITLE' };
 
 const emptyStats = (): DayStats => ({
@@ -44,6 +66,7 @@ const emptyStats = (): DayStats => ({
   earned: 0,
   fined: 0,
   expenses: 0,
+  lost: 0,
 });
 
 function freshGame(save: SaveData | null, day = 1, coins = START_COINS): GameState {
@@ -54,8 +77,29 @@ function freshGame(save: SaveData | null, day = 1, coins = START_COINS): GameSta
     rules: getDayRules(day),
     queue: [],
     index: 0,
+    elapsed: 0,
+    arrived: 0,
     result: null,
+    eventOutcome: null,
     stats: emptyStats(),
+    save,
+  };
+}
+
+/** Fecha o dia: desconta perdas e despesas e decide se o cartório segue. */
+function endOfDay(state: GameState, lost: number): GameState {
+  const expenses = dailyExpenses(state.day);
+  const coins = state.coins - lost - expenses;
+  const survived = coins >= 0;
+  // Depois do último dia o plantão continua, então o save sempre aponta para o dia seguinte.
+  const save: SaveData | null = survived ? { day: state.day + 1, coins } : state.save;
+
+  return {
+    ...state,
+    phase: 'dayEnd',
+    coins,
+    result: null,
+    stats: { ...state.stats, lost, expenses },
     save,
   };
 }
@@ -83,6 +127,8 @@ export function reducer(state: GameState, action: Action): GameState {
         phase: 'playing',
         queue: generateDay(state.rules, action.seed),
         index: 0,
+        elapsed: 0,
+        arrived: Math.min(START_QUEUE, state.rules.applicants),
         result: null,
         stats: emptyStats(),
       };
@@ -90,6 +136,7 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'DECIDE': {
       if (state.phase !== 'playing') return state;
+      if (state.index >= state.arrived) return state;
       const applicant = state.queue[state.index];
       if (!applicant) return state;
 
@@ -111,22 +158,21 @@ export function reducer(state: GameState, action: Action): GameState {
         return { ...state, phase: 'playing', index: state.index + 1, result: null };
       }
 
-      const expenses = dailyExpenses(state.day);
-      const coins = state.coins - expenses;
-      const survived = coins >= 0;
-      const save: SaveData | null = !survived
-        ? state.save
-        : state.day < MAX_DAY
-          ? { day: state.day + 1, coins }
-          : null;
+      return endOfDay(state, 0);
+    }
 
+    case 'TICK': {
+      if (state.phase !== 'playing') return state;
+      const elapsed = state.elapsed + 1;
+      if (elapsed >= timeLimit(state.rules.applicants)) {
+        // O relógio zerou: quem ainda não foi atendido vai embora.
+        const unattended = state.queue.length - state.index;
+        return endOfDay({ ...state, elapsed }, unattended * LATE_PENALTY);
+      }
       return {
         ...state,
-        phase: 'dayEnd',
-        coins,
-        result: null,
-        stats: { ...state.stats, expenses },
-        save,
+        elapsed,
+        arrived: Math.min(state.queue.length, START_QUEUE + Math.floor(elapsed / ARRIVAL_EVERY)),
       };
     }
 
@@ -138,12 +184,51 @@ export function reducer(state: GameState, action: Action): GameState {
       const day = state.day + 1;
       return {
         ...state,
-        phase: 'briefing',
+        phase: eventForDay(day) ? 'event' : 'briefing',
         day,
         rules: getDayRules(day),
         queue: [],
         index: 0,
+        elapsed: 0,
+        arrived: 0,
         result: null,
+        eventOutcome: null,
+        stats: emptyStats(),
+      };
+    }
+
+    case 'CHOOSE_EVENT': {
+      if (state.phase !== 'event' || state.eventOutcome !== null) return state;
+      const event = eventForDay(state.day);
+      const option = event?.options[action.option];
+      if (!option || state.coins + option.delta < 0) return state;
+      const coins = state.coins + option.delta;
+      return {
+        ...state,
+        coins,
+        eventOutcome: option.outcome,
+        save: state.save ? { ...state.save, coins } : null,
+      };
+    }
+
+    case 'EVENT_DONE':
+      if (state.phase !== 'event') return state;
+      return { ...state, phase: 'briefing', eventOutcome: null };
+
+    case 'CONTINUE_INFINITE': {
+      if (state.phase !== 'ending') return state;
+      const day = state.day + 1;
+      return {
+        ...state,
+        phase: eventForDay(day) ? 'event' : 'briefing',
+        day,
+        rules: getDayRules(day),
+        queue: [],
+        index: 0,
+        elapsed: 0,
+        arrived: 0,
+        result: null,
+        eventOutcome: null,
         stats: emptyStats(),
       };
     }
