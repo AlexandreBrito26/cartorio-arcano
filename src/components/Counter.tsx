@@ -3,8 +3,8 @@ import { playResult } from '../game/audio';
 import { DENY_LABEL } from '../game/rules';
 import type { Action, GameState } from '../game/state';
 import type { Applicant, DayRules, ViolationCode } from '../game/types';
+import { CounterScene } from './CounterScene';
 import { BaggageDoc, FeeDoc, IdentityDoc, PassDoc, SealDoc, SpeciesCert } from './Documents';
-import { Portrait } from './Portrait';
 import { RuleBook } from './RuleBook';
 
 interface Props {
@@ -75,9 +75,7 @@ export function Counter({ state, dispatch }: Props) {
   if (!applicant) {
     return (
       <main className="counter">
-        <section className="window" aria-label="Balcão vazio">
-          <p className="bubble">Ninguém no balcão. Os próximos viajantes ainda estão a caminho.</p>
-        </section>
+        <CounterScene emptyText="Ninguém no balcão. Os próximos viajantes ainda estão a caminho." />
       </main>
     );
   }
@@ -91,12 +89,7 @@ export function Counter({ state, dispatch }: Props) {
 
   return (
     <main className="counter">
-      <section className="window" aria-label="Viajante no balcão">
-        <div className="window-frame">
-          <Portrait key={applicant.id} look={applicant.look} />
-        </div>
-        <p className="bubble">“{applicant.line}”</p>
-      </section>
+      <CounterScene applicant={applicant} reaction={result?.decision.kind} />
 
       <section className="desk" aria-label="Mesa de documentos">
         <h2 className="visually-hidden">Documentos na mesa</h2>

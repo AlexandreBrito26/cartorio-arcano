@@ -5,7 +5,7 @@ import { Cutscene } from './components/Cutscene';
 import { Logo } from './components/Logo';
 import { Briefing, DayEnd, Ending, EventScreen, Title } from './components/Screens';
 import { MAX_DAY } from './game/constants';
-import { INTRO_SCENES } from './game/cutscene';
+import { CUTSCENES, CUTSCENE_SCHEDULE, INTRO_SCENES, replayableCutscenes } from './game/cutscene';
 import { createInitialState, reducer, type GameState } from './game/state';
 
 const noop = () => {};
@@ -19,8 +19,8 @@ describe('renderização das telas', () => {
     expect(render(<Title state={createInitialState()} dispatch={noop} />)).toContain('Cartório Arcano');
 
     let s: GameState = reducer(createInitialState(), { type: 'NEW_GAME' });
-    expect(s.phase).toBe('intro');
-    s = reducer(s, { type: 'INTRO_DONE' });
+    expect(s.phase).toBe('cutscene');
+    s = reducer(s, { type: 'CUTSCENE_DONE' });
     expect(s.phase).toBe('briefing');
 
     for (let day = 1; day <= MAX_DAY; day++) {
@@ -81,10 +81,59 @@ describe('logo e cutscene', () => {
 
   it('novo jogo passa pela abertura; continuar vai direto ao briefing', () => {
     const base = createInitialState();
-    expect(reducer(base, { type: 'NEW_GAME' }).phase).toBe('intro');
-    expect(reducer(reducer(base, { type: 'NEW_GAME' }), { type: 'START_DAY', seed: 1 }).phase).toBe('intro');
+    expect(reducer(base, { type: 'NEW_GAME' }).phase).toBe('cutscene');
+    expect(reducer(reducer(base, { type: 'NEW_GAME' }), { type: 'START_DAY', seed: 1 }).phase).toBe('cutscene');
     const withSave = { ...base, save: { day: 3, coins: 20 } };
     expect(reducer(withSave, { type: 'CONTINUE' }).phase).toBe('briefing');
+  });
+});
+
+describe('motor de cenas', () => {
+  it('toda cena registrada tem id único, texto e opções válidas', () => {
+    const ids = Object.values(CUTSCENES).map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const def of Object.values(CUTSCENES)) {
+      expect(CUTSCENES[def.id]).toBe(def);
+      expect(def.scenes.length).toBeGreaterThan(0);
+      for (const scene of def.scenes) expect(scene.lines.length).toBeGreaterThan(0);
+    }
+    for (const day of Object.keys(CUTSCENE_SCHEDULE)) {
+      expect(CUTSCENES[CUTSCENE_SCHEDULE[Number(day)]!]).toBeDefined();
+    }
+  });
+
+  it('renderiza legenda de quem fala e classes de câmera e transição', () => {
+    const html = render(
+      <Cutscene
+        scenes={[{ art: 'mistress', lines: ['Oi.'], speaker: 'Mestra Aurelha', camera: 'pan-left', transition: 'iris' }]}
+        onDone={noop}
+      />,
+    );
+    expect(html).toContain('Mestra Aurelha');
+    expect(html).toContain('cam-pan-left');
+    expect(html).toContain('tr-iris');
+  });
+
+  it('sem campos opcionais, usa câmera parada e fusão', () => {
+    const html = render(<Cutscene scenes={[{ art: 'road', lines: ['x'] }]} onDone={noop} />);
+    expect(html).toContain('cam-still');
+    expect(html).toContain('tr-fade');
+  });
+
+  it('o fim da cena leva à fase combinada e limpa a cena', () => {
+    const playing = reducer(createInitialState(), { type: 'NEW_GAME' });
+    expect(playing.cutscene).toEqual({ id: 'intro', next: 'briefing' });
+    const done = reducer(playing, { type: 'CUTSCENE_DONE' });
+    expect(done.phase).toBe('briefing');
+    expect(done.cutscene).toBeNull();
+    expect(reducer(done, { type: 'CUTSCENE_DONE' })).toBe(done);
+  });
+
+  it('o Diário lista as cenas e bloqueia o replay durante o expediente', async () => {
+    const { Diary } = await import('./components/Diary');
+    expect(replayableCutscenes(1).map((c) => c.id)).toContain('intro');
+    const html = render(<Diary reachedDay={1} onClose={noop} onReplay={noop} canReplay={false} />);
+    expect(html).toContain('Cenas');
   });
 });
 

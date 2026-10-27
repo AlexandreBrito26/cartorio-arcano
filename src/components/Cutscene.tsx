@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { TYPE_SPEED, type CutsceneScene } from '../game/cutscene';
+import { TYPE_SPEED, defaultMood, type CutsceneScene } from '../game/cutscene';
 import { playStamp } from '../game/audio';
 import { Ambience } from './Ambience';
 import { SceneArt } from './SceneArt';
@@ -8,6 +8,8 @@ interface Props {
   scenes: readonly CutsceneScene[];
   onDone: () => void;
   doneLabel?: string;
+  /** Nome da cena para leitores de tela. */
+  label?: string;
 }
 
 const prefersReducedMotion = () =>
@@ -16,10 +18,11 @@ const prefersReducedMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**
- * Cena de história: arte SVG + texto em máquina de escrever.
+ * Cena de história: arte SVG com câmera e transição por cena, partículas, legenda de
+ * quem fala e texto em máquina de escrever.
  * Clique, Espaço ou Enter completam o texto e depois avançam; Esc pula tudo.
  */
-export function Cutscene({ scenes, onDone, doneLabel = 'Abrir o cartório' }: Props) {
+export function Cutscene({ scenes, onDone, doneLabel = 'Continuar', label = 'Cena' }: Props) {
   const [index, setIndex] = useState(0);
   const [chars, setChars] = useState(0);
   const scene = scenes[index];
@@ -44,10 +47,10 @@ export function Cutscene({ scenes, onDone, doneLabel = 'Abrir o cartório' }: Pr
     return () => window.clearInterval(id);
   }, [full]);
 
-  // Som de carimbo na última cena.
+  // Som da cena, quando ela pede um.
   useEffect(() => {
-    if (last) playStamp('approve');
-  }, [last]);
+    if (scene.sfx) playStamp(scene.sfx);
+  }, [scene]);
 
   const finish = useCallback(() => {
     if (doneRef.current) return;
@@ -82,16 +85,28 @@ export function Cutscene({ scenes, onDone, doneLabel = 'Abrir o cartório' }: Pr
   }, [advance, finish]);
 
   const shown = full.slice(0, chars).split('\n');
+  const fallback = defaultMood(scene.art);
+  const camera = scene.camera ?? 'still';
+  const transition = scene.transition ?? 'fade';
 
   return (
-    <main className="screen cutscene" aria-label="Abertura">
+    <main className="screen cutscene" aria-label={label}>
       <div className="cutscene-frame" onClick={advance}>
-        <SceneArt key={scene.art} kind={scene.art} />
-        <Ambience key={scene.art} mood={scene.art === 'road' || scene.art === 'gate' ? 'mist' : 'embers'} count={scene.art === 'road' || scene.art === 'gate' ? 10 : 34} />
+        <div key={index} className={`scene-stage tr-${transition}`}>
+          <div className={`scene-camera cam-${camera}`}>
+            <SceneArt kind={scene.art} />
+          </div>
+        </div>
+        <Ambience
+          key={`${index}-${scene.art}`}
+          mood={scene.mood ?? fallback.mood}
+          count={scene.particles ?? fallback.count}
+        />
         <div className="cutscene-vignette" />
       </div>
 
       <div className="cutscene-text" aria-live="polite" onClick={advance}>
+        {scene.speaker && <p className="cutscene-speaker">{scene.speaker}</p>}
         {scene.lines.map((line, i) => (
           <p key={`${index}-${i}`}>
             <span className="visually-hidden">{line}</span>

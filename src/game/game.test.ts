@@ -117,7 +117,7 @@ describe('áudio', () => {
 
 describe('fluxo do jogo', () => {
   it('joga um dia inteiro e termina na tela de fim de dia', () => {
-    let s = reducer(reducer(createInitialState(), { type: 'NEW_GAME' }), { type: 'INTRO_DONE' });
+    let s = reducer(reducer(createInitialState(), { type: 'NEW_GAME' }), { type: 'CUTSCENE_DONE' });
     s = reducer(s, { type: 'START_DAY', seed: 123 });
     expect(s.phase).toBe('playing');
 

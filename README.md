@@ -56,7 +56,7 @@ src/
     rng.ts          gerador pseudoaleatório com seed
     game.test.ts    testes
   components/       Portrait (SVG), Documents, RuleBook, Counter, Screens, Logo, Cutscene, SceneArt, Ambience (PixiJS)
-  game/cutscene.ts  roteiro da abertura (cenas e textos)
+  game/cutscene.ts  motor de cenas: tipos (câmera, transição, falante, sfx), registro CUTSCENES e agenda por dia (CUTSCENE_SCHEDULE)
 public/favicon.svg  ícone da aba
   App.tsx, styles.css, main.tsx
 ```

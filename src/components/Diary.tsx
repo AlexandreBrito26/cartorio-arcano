@@ -7,15 +7,20 @@ import {
   unlockedCount,
   type DiaryTab,
 } from '../game/lore';
+import { replayableCutscenes, type CutsceneId } from '../game/cutscene';
 
 interface Props {
   /** Dia mais avançado já alcançado (desbloqueia os verbetes). */
   reachedDay: number;
   onClose: () => void;
+  /** Rever uma cena. Sem isso, a aba de cenas só lista. */
+  onReplay?: (id: CutsceneId) => void;
+  /** Falso durante o expediente, para a cena não gastar o relógio do dia. */
+  canReplay?: boolean;
 }
 
 /** Diário do Cartório: enciclopédia do mundo, liberada conforme a campanha avança. */
-export function Diary({ reachedDay, onClose }: Props) {
+export function Diary({ reachedDay, onClose, onReplay, canReplay = true }: Props) {
   const [tab, setTab] = useState<DiaryTab>('mundo');
   const closeRef = useRef<HTMLButtonElement>(null);
   const { open, total } = unlockedCount(reachedDay);
@@ -29,7 +34,8 @@ export function Diary({ reachedDay, onClose }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const entries = entriesFor(tab);
+  const entries = tab === 'cenas' ? [] : entriesFor(tab);
+  const scenes = replayableCutscenes(reachedDay);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -73,6 +79,25 @@ export function Diary({ reachedDay, onClose }: Props) {
                 <p key={p}>{p}</p>
               ))}
             </article>
+          )}
+          {tab === 'cenas' && (
+            <>
+              {!canReplay && <p className="muted">Disponível entre os dias, com o balcão fechado.</p>}
+              {scenes.map((c) => (
+                <article key={c.id} className="diary-entry">
+                  <h3>{c.title}</h3>
+                  <p className="tagline">{c.scenes.length} cenas</p>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={!canReplay || !onReplay}
+                    onClick={() => onReplay?.(c.id)}
+                  >
+                    Rever cena
+                  </button>
+                </article>
+              ))}
+            </>
           )}
           {entries.map((e) =>
             isUnlocked(e, reachedDay) ? (

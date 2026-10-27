@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-type Mood = 'embers' | 'mist';
+type Mood = 'embers' | 'mist' | 'rain';
 
 interface Props {
   mood?: Mood;
@@ -12,6 +12,7 @@ interface Props {
 const PALETTE: Record<Mood, number[]> = {
   embers: [0xe0b44c, 0xffd36b, 0xf1e4c3],
   mist: [0xa79fc9, 0x7a66e0, 0xf1e4c3],
+  rain: [0x9fb8e8, 0xc9d8ff, 0x7f9bd6],
 };
 
 const reduced = () =>
@@ -70,15 +71,21 @@ export function Ambience({ mood = 'embers', count = 36, className }: Props) {
 
       for (let i = 0; i < count; i++) {
         const g = new Graphics();
-        const r = mood === 'mist' ? rand(14, 38) : rand(1, 2.6);
-        g.circle(0, 0, r).fill({ color: colors[i % colors.length], alpha: mood === 'mist' ? 0.05 : rand(0.35, 0.9) });
+        if (mood === 'rain') {
+          // Fio de chuva inclinado: cada gota tem comprimento e opacidade próprios (profundidade).
+          const len = rand(8, 22);
+          g.moveTo(0, 0).lineTo(-len * 0.12, len).stroke({ width: rand(0.6, 1.3), color: colors[i % colors.length], alpha: rand(0.18, 0.5) });
+        } else {
+          const r = mood === 'mist' ? rand(14, 38) : rand(1, 2.6);
+          g.circle(0, 0, r).fill({ color: colors[i % colors.length], alpha: mood === 'mist' ? 0.05 : rand(0.35, 0.9) });
+        }
         g.x = rand(0, app.screen.width);
         g.y = rand(0, app.screen.height);
         app.stage.addChild(g);
         motes.push({
           g,
-          vx: mood === 'mist' ? rand(0.05, 0.2) : rand(-0.15, 0.15),
-          vy: mood === 'mist' ? rand(-0.03, 0.03) : -rand(0.1, 0.45),
+          vx: mood === 'rain' ? -rand(1.2, 2.2) : mood === 'mist' ? rand(0.05, 0.2) : rand(-0.15, 0.15),
+          vy: mood === 'rain' ? rand(11, 19) : mood === 'mist' ? rand(-0.03, 0.03) : -rand(0.1, 0.45),
           phase: rand(0, Math.PI * 2),
           base: g.alpha,
         });
@@ -89,7 +96,7 @@ export function Ambience({ mood = 'embers', count = 36, className }: Props) {
         const dt = t.deltaTime;
         for (const m of motes) {
           m.phase += 0.02 * dt;
-          m.g.x += (m.vx + Math.sin(m.phase) * 0.15) * dt;
+          m.g.x += (m.vx + (mood === 'rain' ? 0 : Math.sin(m.phase) * 0.15)) * dt;
           m.g.y += m.vy * dt;
           if (mood === 'embers') m.g.alpha = m.base * (0.6 + 0.4 * Math.sin(m.phase * 2));
           if (m.g.y < -10) m.g.y = height + 10;

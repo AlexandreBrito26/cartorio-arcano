@@ -6,7 +6,7 @@ import { Logo } from './components/Logo';
 import { Briefing, DayEnd, Ending, EventScreen, Title } from './components/Screens';
 import { isMuted, setMuted } from './game/audio';
 import { GAME_YEAR, MAX_DAY, formatDate, timeLimit } from './game/constants';
-import { INTRO_SCENES } from './game/cutscene';
+import { CUTSCENES, type CutsceneId } from './game/cutscene';
 import { createInitialState, reducer } from './game/state';
 import { persistSave } from './game/storage';
 
@@ -20,6 +20,7 @@ export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
   const [muted, setMutedState] = useState(isMuted);
   const [diaryOpen, setDiaryOpen] = useState(false);
+  const [replayId, setReplayId] = useState<CutsceneId | null>(null);
   const reachedDay = Math.max(state.day, state.save?.day ?? 1);
 
   const toggleSound = () => {
@@ -40,7 +41,7 @@ export default function App() {
           <Logo size={28} />
           Cartório Arcano
         </span>
-        {state.phase !== 'title' && state.phase !== 'intro' && state.phase !== 'ending' && (
+        {state.phase !== 'title' && state.phase !== 'cutscene' && state.phase !== 'ending' && (
           <dl className="hud">
             <div>
               <dt>Dia</dt>
@@ -78,7 +79,7 @@ export default function App() {
             )}
           </dl>
         )}
-        {state.phase !== 'intro' && (
+        {state.phase !== 'cutscene' && (
           <button type="button" className="diary-btn" onClick={() => setDiaryOpen(true)}>
             📖 Diário
           </button>
@@ -95,10 +96,39 @@ export default function App() {
         </button>
       </header>
 
-      {diaryOpen && <Diary reachedDay={reachedDay} onClose={() => setDiaryOpen(false)} />}
+      {diaryOpen && (
+        <Diary
+          reachedDay={reachedDay}
+          canReplay={!inGame}
+          onClose={() => setDiaryOpen(false)}
+          onReplay={(id) => {
+            setDiaryOpen(false);
+            setReplayId(id);
+          }}
+        />
+      )}
+      {replayId && (
+        <div className="replay-overlay">
+          <Cutscene
+            scenes={CUTSCENES[replayId].scenes}
+            label={CUTSCENES[replayId].title}
+            doneLabel="Voltar ao Diário"
+            onDone={() => {
+              setReplayId(null);
+              setDiaryOpen(true);
+            }}
+          />
+        </div>
+      )}
       {state.phase === 'title' && <Title state={state} dispatch={dispatch} />}
-      {state.phase === 'intro' && (
-        <Cutscene scenes={INTRO_SCENES} onDone={() => dispatch({ type: 'INTRO_DONE' })} />
+      {state.phase === 'cutscene' && state.cutscene && (
+        <Cutscene
+          key={state.cutscene.id}
+          scenes={CUTSCENES[state.cutscene.id].scenes}
+          label={CUTSCENES[state.cutscene.id].title}
+          doneLabel={CUTSCENES[state.cutscene.id].doneLabel}
+          onDone={() => dispatch({ type: 'CUTSCENE_DONE' })}
+        />
       )}
       {state.phase === 'briefing' && <Briefing state={state} dispatch={dispatch} />}
       {state.phase === 'event' && <EventScreen state={state} dispatch={dispatch} />}

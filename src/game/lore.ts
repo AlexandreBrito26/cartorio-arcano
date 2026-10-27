@@ -334,13 +334,14 @@ export const GUILD_LORE: Record<Guild, LoreEntry<Guild> & { symbol: string }> = 
   },
 };
 
-export type DiaryTab = 'mundo' | 'reinos' | 'especies' | 'guildas';
+export type DiaryTab = 'mundo' | 'reinos' | 'especies' | 'guildas' | 'cenas';
 
 export const DIARY_TABS: { id: DiaryTab; label: string }[] = [
   { id: 'mundo', label: 'O mundo' },
   { id: 'reinos', label: 'Reinos' },
   { id: 'especies', label: 'Espécies' },
   { id: 'guildas', label: 'Guildas' },
+  { id: 'cenas', label: 'Cenas' },
 ];
 
 /** Verbetes de uma aba, em ordem estável. */
@@ -354,6 +355,9 @@ export function entriesFor(tab: DiaryTab): LoreEntry[] {
       return Object.values(SPECIES_LORE);
     case 'guildas':
       return Object.values(GUILD_LORE);
+    case 'cenas':
+      // As cenas não são verbetes: o Diário as lista à parte (ver Diary).
+      return [];
   }
 }
 

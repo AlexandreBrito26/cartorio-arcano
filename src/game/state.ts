@@ -12,9 +12,10 @@ import { generateDay } from './generator';
 import { evaluate, judge } from './rules';
 import { loadSave, type SaveData } from './storage';
 import { eventForDay } from './events';
+import { cutsceneForDay, type CutsceneId } from './cutscene';
 import type { Applicant, Decision, DecisionResult, DayRules } from './types';
 
-export type Phase = 'title' | 'intro' | 'briefing' | 'event' | 'playing' | 'result' | 'dayEnd' | 'ending';
+export type Phase = 'title' | 'cutscene' | 'briefing' | 'event' | 'playing' | 'result' | 'dayEnd' | 'ending';
 
 export interface DayStats {
   correct: number;
@@ -43,12 +44,14 @@ export interface GameState {
   eventOutcome: string | null;
   stats: DayStats;
   save: SaveData | null;
+  /** Cena em exibição (fase 'cutscene') e a fase para a qual o jogo segue ao terminá-la. */
+  cutscene: { id: CutsceneId; next: Phase } | null;
 }
 
 export type Action =
   | { type: 'NEW_GAME' }
   | { type: 'CONTINUE' }
-  | { type: 'INTRO_DONE' }
+  | { type: 'CUTSCENE_DONE' }
   | { type: 'START_DAY'; seed: number }
   | { type: 'DECIDE'; decision: Decision }
   | { type: 'NEXT' }
@@ -83,6 +86,7 @@ function freshGame(save: SaveData | null, day = 1, coins = START_COINS): GameSta
     eventOutcome: null,
     stats: emptyStats(),
     save,
+    cutscene: null,
   };
 }
 
@@ -104,20 +108,51 @@ function endOfDay(state: GameState, lost: number): GameState {
   };
 }
 
+/** Fase em que o jogo entra ao chegar num dia: evento, se houver, ou briefing. */
+const dayEntryPhase = (day: number): Phase => (eventForDay(day) ? 'event' : 'briefing');
+
+/** Passa para uma cena; ao terminar, o jogo segue para `next`. */
+const playCutscene = (state: GameState, id: CutsceneId, next: Phase): GameState => ({
+  ...state,
+  phase: 'cutscene',
+  cutscene: { id, next },
+});
+
+/** Avança para o dia seguinte, passando antes pela cena do dia, se houver. */
+function enterDay(state: GameState, day: number): GameState {
+  const next: GameState = {
+    ...state,
+    phase: dayEntryPhase(day),
+    day,
+    rules: getDayRules(day),
+    queue: [],
+    index: 0,
+    elapsed: 0,
+    arrived: 0,
+    result: null,
+    eventOutcome: null,
+    stats: emptyStats(),
+  };
+  const scene = cutsceneForDay(day);
+  return scene ? playCutscene(next, scene, next.phase) : next;
+}
+
 export const createInitialState = (): GameState => freshGame(loadSave());
 
 export function reducer(state: GameState, action: Action): GameState {
   switch (action.type) {
     case 'NEW_GAME':
-      return { ...freshGame(state.save), phase: 'intro' };
+      return playCutscene(freshGame(state.save), 'intro', 'briefing');
 
-    case 'INTRO_DONE':
-      if (state.phase !== 'intro') return state;
-      return { ...state, phase: 'briefing' };
+    case 'CUTSCENE_DONE':
+      if (state.phase !== 'cutscene' || !state.cutscene) return state;
+      return { ...state, phase: state.cutscene.next, cutscene: null };
 
     case 'CONTINUE': {
       if (!state.save) return state;
-      return { ...freshGame(state.save, state.save.day, state.save.coins), phase: 'briefing' };
+      const resumed = freshGame(state.save, state.save.day, state.save.coins);
+      const scene = cutsceneForDay(state.save.day);
+      return scene ? playCutscene(resumed, scene, 'briefing') : { ...resumed, phase: 'briefing' };
     }
 
     case 'START_DAY': {
@@ -181,20 +216,7 @@ export function reducer(state: GameState, action: Action): GameState {
       if (state.coins < 0) return { ...state, phase: 'title' };
       if (state.day >= MAX_DAY) return { ...state, phase: 'ending' };
 
-      const day = state.day + 1;
-      return {
-        ...state,
-        phase: eventForDay(day) ? 'event' : 'briefing',
-        day,
-        rules: getDayRules(day),
-        queue: [],
-        index: 0,
-        elapsed: 0,
-        arrived: 0,
-        result: null,
-        eventOutcome: null,
-        stats: emptyStats(),
-      };
+      return enterDay(state, state.day + 1);
     }
 
     case 'CHOOSE_EVENT': {
@@ -217,20 +239,7 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'CONTINUE_INFINITE': {
       if (state.phase !== 'ending') return state;
-      const day = state.day + 1;
-      return {
-        ...state,
-        phase: eventForDay(day) ? 'event' : 'briefing',
-        day,
-        rules: getDayRules(day),
-        queue: [],
-        index: 0,
-        elapsed: 0,
-        arrived: 0,
-        result: null,
-        eventOutcome: null,
-        stats: emptyStats(),
-      };
+      return enterDay(state, state.day + 1);
     }
 
     case 'TO_TITLE':

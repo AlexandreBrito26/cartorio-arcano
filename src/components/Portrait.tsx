@@ -116,10 +116,12 @@ export function Portrait({ look }: { look: Look }) {
 
       {hasBeard && <path d={BEARD} fill={hair} />}
 
-      <ellipse cx="48" cy="60" rx="5" ry="4" fill="#fff" />
-      <ellipse cx="72" cy="60" rx="5" ry="4" fill="#fff" />
-      <circle cx="48" cy="60" r="2.6" fill={eyes} />
-      <circle cx="72" cy="60" r="2.6" fill={eyes} />
+      <g className="blink">
+        <ellipse cx="48" cy="60" rx="5" ry="4" fill="#fff" />
+        <ellipse cx="72" cy="60" rx="5" ry="4" fill="#fff" />
+        <circle cx="48" cy="60" r="2.6" fill={eyes} />
+        <circle cx="72" cy="60" r="2.6" fill={eyes} />
+      </g>
       <path d="M41 52 L55 51 M65 51 L79 52" stroke="#00000066" strokeWidth="2" strokeLinecap="round" />
       <path d="M52 76 Q60 80 68 76" stroke="#5b2f2f" strokeWidth="2" fill="none" strokeLinecap="round" />
     </svg>
