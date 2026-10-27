@@ -30,3 +30,15 @@ describe('cena antes de um dia da campanha', () => {
     expect(reducer(s, { type: 'CUTSCENE_DONE' }).phase).toBe('briefing');
   });
 });
+
+// Sincronia de áudio e imagem na abertura: o som, o tremor (CSS) e o carimbo (Pixi)
+// usam o mesmo instante, STAMP_IMPACT_MS.
+describe('sincronia do carimbo na abertura', () => {
+  it('a última cena da abertura toca o som exatamente no impacto', async () => {
+    const real = await import('./cutscene');
+    const intro = real.CUTSCENES.intro;
+    const last = intro.scenes[intro.scenes.length - 1];
+    expect(last.sfx).toBe('approve');
+    expect(last.sfxAt).toBe(real.STAMP_IMPACT_MS);
+  });
+});

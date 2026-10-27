@@ -1,12 +1,18 @@
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { Counter } from './components/Counter';
 import { Cutscene } from './components/Cutscene';
 import { Logo } from './components/Logo';
+import { Portrait } from './components/Portrait';
 import { Briefing, DayEnd, Ending, EventScreen, Title } from './components/Screens';
 import { MAX_DAY } from './game/constants';
-import { CUTSCENES, CUTSCENE_SCHEDULE, INTRO_SCENES, replayableCutscenes } from './game/cutscene';
+import { CUTSCENES, CUTSCENE_SCHEDULE, INTRO_SCENES, STAMP_IMPACT_MS, replayableCutscenes } from './game/cutscene';
+import { SPECIES } from './game/constants';
 import { createInitialState, reducer, type GameState } from './game/state';
+import type { Look } from './game/types';
+import { SPECIES_SLUG } from './render/characterAnim';
 
 const noop = () => {};
 
@@ -16,7 +22,7 @@ const render = (el: Parameters<typeof renderToString>[0]) =>
 
 describe('renderização das telas', () => {
   it('monta título, briefing, balcão, resultado, fim de dia e desfecho em todos os dias', () => {
-    expect(render(<Title state={createInitialState()} dispatch={noop} />)).toContain('Cartório Arcano');
+    expect(render(<Title state={createInitialState()} dispatch={noop} />)).toContain('Cartório das Brumas');
 
     let s: GameState = reducer(createInitialState(), { type: 'NEW_GAME' });
     expect(s.phase).toBe('cutscene');
@@ -67,8 +73,18 @@ describe('renderização das telas', () => {
 
 describe('logo e cutscene', () => {
   it('renderiza a logo com e sem rótulo acessível', () => {
-    expect(render(<Logo title="Logo do Cartório Arcano" />)).toContain('aria-label="Logo do Cartório Arcano"');
+    expect(render(<Logo title="Logo do Cartório das Brumas" />)).toContain('aria-label="Logo do Cartório das Brumas"');
     expect(render(<Logo />)).toContain('aria-hidden="true"');
+  });
+
+  it('a logo é o selo em PNG, sem suavização e no tamanho pedido', () => {
+    const html = render(<Logo size={64} className="title-logo" />);
+    expect(html).toContain('<img');
+    expect(html).toContain('src="/art/ui/logo-seal.png"');
+    expect(html).toContain('width="64"');
+    expect(html).toContain('class="logo title-logo"');
+    expect(html).toContain('image-rendering:pixelated');
+    expect(html).not.toContain('<svg');
   });
 
   it('a abertura tem cenas com texto e a primeira aparece na tela', () => {
@@ -110,14 +126,45 @@ describe('motor de cenas', () => {
       />,
     );
     expect(html).toContain('Mestra Aurelha');
-    expect(html).toContain('cam-pan-left');
+    expect(html).toContain('data-camera="pan-left"');
     expect(html).toContain('tr-iris');
   });
 
   it('sem campos opcionais, usa câmera parada e fusão', () => {
     const html = render(<Cutscene scenes={[{ art: 'road', lines: ['x'] }]} onDone={noop} />);
-    expect(html).toContain('cam-still');
+    expect(html).toContain('data-camera="still"');
     expect(html).toContain('tr-fade');
+  });
+
+  it('o cartão de título "Ano 417" abre a cena, com letterbox, antes da primeira imagem', () => {
+    expect(CUTSCENES.intro.titleCard).toBe('Ano 417');
+    const html = render(<Cutscene scenes={INTRO_SCENES} titleCard={CUTSCENES.intro.titleCard} onDone={noop} />);
+    expect(html).toContain('title-card');
+    expect(html).toContain('Ano 417');
+    expect(html).toContain('letterbox');
+    expect(html).not.toContain('scene-stage');
+    // Sem cartão, a primeira imagem aparece de imediato.
+    const plain = render(<Cutscene scenes={INTRO_SCENES} onDone={noop} />);
+    expect(plain).not.toContain('title-card');
+    expect(plain).toContain('scene-stage');
+  });
+
+  it('cada cena da abertura tem câmera própria, e o foco é passado à cena do Pixi', () => {
+    expect(INTRO_SCENES.map((s) => s.camera)).toEqual(['dolly-in', 'tilt-up', 'pan-left', 'push-in', 'pull-back']);
+    const html = render(
+      <Cutscene scenes={[{ art: 'road', lines: ['x'], camera: 'dolly-in', focus: { x: 54, y: 70 } }]} onDone={noop} />,
+    );
+    expect(html).toContain('data-camera="dolly-in"');
+    expect(html).toContain('data-focus="54 70"');
+  });
+
+  it('o carimbo toca no instante do impacto e a cena treme nesse momento', () => {
+    const last = INTRO_SCENES[INTRO_SCENES.length - 1];
+    expect(last.sfx).toBe('approve');
+    expect(last.sfxAt).toBe(STAMP_IMPACT_MS);
+    const html = render(<Cutscene scenes={[last]} onDone={noop} />);
+    expect(html).toContain('scene-shake impact');
+    expect(html).toContain('--shake-at:1700ms');
   });
 
   it('o fim da cena leva à fase combinada e limpa a cena', () => {
@@ -144,5 +191,121 @@ describe('Diário do Cartório', () => {
     expect(html).toContain('Diário do Cartório');
     expect(html).toContain('A subida das Brumas');
     expect(html).toContain('Verbete lacrado');
+  });
+});
+
+const lookOf = (species: Look['species']): Look => ({
+  species,
+  skin: 'x',
+  hair: 'x',
+  eyes: 'x',
+  cloak: 'x',
+  hairStyle: 0,
+  beard: false,
+});
+
+describe('pixel art no lugar do SVG (fase 8)', () => {
+  it('nenhuma tela do jogo monta <svg> no DOM', () => {
+    const state = createInitialState();
+    expect(render(<Title state={state} dispatch={noop} />)).not.toContain('<svg');
+
+    expect(render(<Cutscene scenes={INTRO_SCENES} titleCard={CUTSCENES.intro.titleCard} onDone={noop} />)).not.toContain('<svg');
+    expect(render(<Cutscene scenes={INTRO_SCENES} onDone={noop} />)).not.toContain('<svg');
+
+    let s: GameState = reducer(reducer(state, { type: 'NEW_GAME' }), { type: 'CUTSCENE_DONE' });
+    s = reducer(s, { type: 'START_DAY', seed: 7 });
+    while (s.phase === 'playing' && s.index >= s.arrived) s = reducer(s, { type: 'TICK' });
+    expect(s.phase).toBe('playing');
+    expect(render(<Counter state={s} dispatch={noop} />)).not.toContain('<svg');
+  });
+
+  it('o balcão monta o viajante com o retrato em pixel art', () => {
+    let s: GameState = reducer(reducer(createInitialState(), { type: 'NEW_GAME' }), { type: 'CUTSCENE_DONE' });
+    s = reducer(s, { type: 'START_DAY', seed: 7 });
+    while (s.phase === 'playing' && s.index >= s.arrived) s = reducer(s, { type: 'TICK' });
+    const html = render(<Counter state={s} dispatch={noop} />);
+    expect(html).toContain('st-traveler');
+    expect(html).toContain('pixel-portrait');
+    expect(html).toMatch(/Retrato de /);
+  });
+
+  it('o retrato de reserva (sem WebGL) é a camada de contorno em PNG, para toda espécie', () => {
+    for (const species of SPECIES) {
+      const html = render(<Portrait look={lookOf(species)} />);
+      expect(html).toContain('portrait-fallback');
+      expect(html).toContain('role="img"');
+      expect(html).toContain(`aria-label="Retrato de ${species}"`);
+      expect(html).toContain(`/art/personagens/${SPECIES_SLUG[species]}.png`);
+      expect(html).toContain('image-rendering:pixelated');
+      expect(html).not.toContain('<svg');
+    }
+  });
+});
+
+describe('arte e atlas em public/', () => {
+  const pub = join(process.cwd(), 'public');
+  const pngSize = (file: string) => {
+    const b = readFileSync(file);
+    return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
+  };
+
+  it('cada espécie tem PNG + JSON, e o contorno fica no índice que o Portrait de reserva usa', () => {
+    for (const species of SPECIES) {
+      const slug = SPECIES_SLUG[species];
+      const json = join(pub, 'art', 'personagens', `${slug}.json`);
+      const png = join(pub, 'art', 'personagens', `${slug}.png`);
+      expect(existsSync(json), `${slug}.json`).toBe(true);
+      expect(existsSync(png), `${slug}.png`).toBe(true);
+
+      const atlas = JSON.parse(readFileSync(json, 'utf8')) as {
+        image: string;
+        frameWidth: number;
+        frameHeight: number;
+        frames: { name: string }[];
+      };
+      expect(atlas.image).toBe(`/art/personagens/${slug}.png`);
+      // Portrait.tsx assume: contorno no índice 10, folha com 11 quadros de 64×72.
+      expect(atlas.frames.findIndex((f) => f.name === 'outline')).toBe(10);
+      expect(atlas.frames).toHaveLength(11);
+      expect(pngSize(png)).toEqual({ w: 11 * atlas.frameWidth, h: atlas.frameHeight });
+      expect([atlas.frameWidth, atlas.frameHeight]).toEqual([64, 72]);
+    }
+  });
+
+  it('o selo da logo e os ícones do HUD existem', () => {
+    for (const f of ['logo-seal.png', 'icon-dia.png', 'icon-moeda.png']) {
+      expect(existsSync(join(pub, 'art', 'ui', f)), f).toBe(true);
+    }
+  });
+});
+
+describe('sem restos do SVG no código', () => {
+  const walk = (dir: string): string[] =>
+    readdirSync(dir).flatMap((n) => {
+      const p = join(dir, n);
+      return statSync(p).isDirectory() ? walk(p) : [p];
+    });
+  const src = join(process.cwd(), 'src');
+  const files = walk(src);
+
+  it('SceneArt.tsx e o styles.css antigo não existem mais', () => {
+    expect(files.some((f) => f.endsWith('SceneArt.tsx'))).toBe(false);
+    expect(existsSync(join(src, 'styles.css'))).toBe(false);
+  });
+
+  it('nenhum componente declara elementos <svg>', () => {
+    const offenders = files
+      .filter((f) => /\.tsx$/.test(f) && !f.endsWith('.test.tsx'))
+      .filter((f) => /<svg[\s>]/.test(readFileSync(f, 'utf8')));
+    expect(offenders).toEqual([]);
+  });
+
+  it('o SCSS não guarda estilos das partes SVG antigas', () => {
+    const css = readFileSync(join(src, 'styles.scss'), 'utf8');
+    for (const cls of ['st-clouds', 'st-mist', 'st-lamp', 'st-rune', 'st-candle', 'st-swing', 'st-flash', 'st-window']) {
+      expect(css, cls).not.toContain(`.${cls}`);
+    }
+    expect(css).not.toMatch(/\.portrait\b(?!-)/);
+    expect(css).not.toMatch(/\.px(-|\s|,|\{)/);
   });
 });

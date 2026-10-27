@@ -9,6 +9,7 @@ import { GAME_YEAR, MAX_DAY, formatDate, timeLimit } from './game/constants';
 import { CUTSCENES, type CutsceneId } from './game/cutscene';
 import { createInitialState, reducer } from './game/state';
 import { persistSave } from './game/storage';
+import { preloadBundle, preloadBundles } from './render/assets';
 
 /** Segundos restantes em mm:ss. */
 function formatClock(seconds: number) {
@@ -32,6 +33,13 @@ export default function App() {
     persistSave(state.save);
   }, [state.save]);
 
+  // Pré-carga de texturas por fase, para não haver "pop-in" ao entrar na cena.
+  useEffect(() => {
+    if (state.phase === 'title') return; // o Pixi só é baixado quando o jogador mostra intenção de jogar (Title)
+    if (state.phase === 'cutscene') void preloadBundles(['abertura', 'balcao', 'personagens']);
+    else void preloadBundle('balcao').then(() => preloadBundle('personagens'));
+  }, [state.phase]);
+
   const inGame = state.phase === 'playing' || state.phase === 'result';
 
   return (
@@ -39,12 +47,12 @@ export default function App() {
       <header className="topbar">
         <span className="brand">
           <Logo size={28} />
-          Cartório Arcano
+          Cartório das Brumas
         </span>
         {state.phase !== 'title' && state.phase !== 'cutscene' && state.phase !== 'ending' && (
           <dl className="hud">
             <div>
-              <dt>Dia</dt>
+              <dt><img src="/art/ui/icon-dia.png" alt="" className="hud-icon" />Dia</dt>
               <dd>
                 {state.day > MAX_DAY ? `${state.day} · plantão` : `${state.day}/${MAX_DAY}`}
               </dd>
@@ -56,7 +64,7 @@ export default function App() {
               </dd>
             </div>
             <div>
-              <dt>Moedas</dt>
+              <dt><img src="/art/ui/icon-moeda.png" alt="" className="hud-icon" />Moedas</dt>
               <dd className={state.coins < 0 ? 'negative' : undefined}>{state.coins}</dd>
             </div>
             {inGame && (
@@ -112,6 +120,7 @@ export default function App() {
           <Cutscene
             scenes={CUTSCENES[replayId].scenes}
             label={CUTSCENES[replayId].title}
+            titleCard={CUTSCENES[replayId].titleCard}
             doneLabel="Voltar ao Diário"
             onDone={() => {
               setReplayId(null);
@@ -126,6 +135,7 @@ export default function App() {
           key={state.cutscene.id}
           scenes={CUTSCENES[state.cutscene.id].scenes}
           label={CUTSCENES[state.cutscene.id].title}
+          titleCard={CUTSCENES[state.cutscene.id].titleCard}
           doneLabel={CUTSCENES[state.cutscene.id].doneLabel}
           onDone={() => dispatch({ type: 'CUTSCENE_DONE' })}
         />

@@ -1,0 +1,43 @@
+{
+  "image": "/sprites/smoke-rune.png",
+  "frameWidth": 16,
+  "frameHeight": 16,
+  "frames": [
+    {
+      "name": "rune-0",
+      "x": 0,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    {
+      "name": "rune-1",
+      "x": 16,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    {
+      "name": "rune-2",
+      "x": 32,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    {
+      "name": "rune-3",
+      "x": 48,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    }
+  ],
+  "animations": {
+    "pulse": [
+      "rune-0",
+      "rune-1",
+      "rune-2",
+      "rune-3"
+    ]
+  }
+}

@@ -1,0 +1,241 @@
+{
+  "version": 1,
+  "note": "Lista de animações por entidade, definida antes de desenhar. status: planejado | desenhado | integrado. Frames em pixels da arte; fps na tela.",
+  "entities": {
+    "cena-road": {
+      "tamanho": "320x180",
+      "animacoes": [
+        {
+          "nome": "nevoa",
+          "frames": 8,
+          "fps": 6,
+          "loop": true,
+          "status": "integrado"
+        },
+        {
+          "nome": "tocha",
+          "frames": 4,
+          "fps": 8,
+          "loop": true,
+          "status": "planejado"
+        }
+      ]
+    },
+    "cena-gate": {
+      "tamanho": "320x180",
+      "animacoes": [
+        {
+          "nome": "runa-pulsa",
+          "frames": 4,
+          "fps": 6,
+          "loop": true,
+          "status": "integrado"
+        },
+        {
+          "nome": "nevoa-base",
+          "frames": 6,
+          "fps": 5,
+          "loop": true,
+          "status": "planejado"
+        }
+      ]
+    },
+    "cena-office": {
+      "tamanho": "320x180",
+      "animacoes": [
+        {
+          "nome": "vela",
+          "frames": 4,
+          "fps": 8,
+          "loop": true,
+          "status": "integrado"
+        },
+        {
+          "nome": "poeira",
+          "frames": 6,
+          "fps": 4,
+          "loop": true,
+          "status": "planejado"
+        }
+      ]
+    },
+    "cena-mistress": {
+      "tamanho": "320x180",
+      "animacoes": [
+        {
+          "nome": "aurelha-respira",
+          "frames": 4,
+          "fps": 3,
+          "loop": true,
+          "status": "planejado"
+        },
+        {
+          "nome": "olhar-pisca",
+          "frames": 3,
+          "fps": 10,
+          "loop": false,
+          "status": "planejado"
+        }
+      ]
+    },
+    "cena-stamp": {
+      "tamanho": "320x180",
+      "animacoes": [
+        {
+          "nome": "carimbo-impacto",
+          "frames": 4,
+          "fps": 12,
+          "loop": false,
+          "status": "integrado",
+          "sincronia": "STAMP_IMPACT_MS"
+        }
+      ]
+    },
+    "personagem-base": {
+      "tamanho": "48-64 px de altura",
+      "animacoes": [
+        {
+          "nome": "idle",
+          "frames": 4,
+          "fps": 4,
+          "loop": true,
+          "status": "integrado"
+        },
+        {
+          "nome": "piscar",
+          "frames": 3,
+          "fps": 10,
+          "loop": false,
+          "status": "integrado"
+        },
+        {
+          "nome": "reacao-aprova",
+          "frames": 4,
+          "fps": 10,
+          "loop": false,
+          "status": "integrado"
+        },
+        {
+          "nome": "reacao-nega",
+          "frames": 4,
+          "fps": 10,
+          "loop": false,
+          "status": "integrado"
+        }
+      ]
+    },
+    "personagem-golem": {
+      "extra": true,
+      "animacoes": [
+        {
+          "nome": "idle",
+          "frames": 6,
+          "fps": 3,
+          "loop": true,
+          "status": "integrado"
+        }
+      ]
+    },
+    "personagem-espectro": {
+      "extra": true,
+      "animacoes": [
+        {
+          "nome": "flutua",
+          "frames": 6,
+          "fps": 5,
+          "loop": true,
+          "status": "integrado"
+        }
+      ]
+    },
+    "personagem-fada": {
+      "extra": true,
+      "animacoes": [
+        {
+          "nome": "asas",
+          "frames": 6,
+          "fps": 12,
+          "loop": true,
+          "status": "integrado"
+        }
+      ]
+    },
+    "personagem-draconato": {
+      "extra": true,
+      "animacoes": [
+        {
+          "nome": "fumaca",
+          "frames": 4,
+          "fps": 6,
+          "loop": true,
+          "status": "integrado"
+        }
+      ]
+    },
+    "personagem-tritao": {
+      "extra": true,
+      "animacoes": [
+        {
+          "nome": "respingo",
+          "frames": 4,
+          "fps": 6,
+          "loop": true,
+          "status": "integrado"
+        }
+      ]
+    },
+    "balcao": {
+      "tamanho": "320x80",
+      "animacoes": [
+        {
+          "nome": "lampada-balanca",
+          "frames": "rotação",
+          "fps": "contínuo",
+          "loop": true,
+          "status": "integrado"
+        },
+        {
+          "nome": "vela",
+          "frames": "escala da chama",
+          "fps": "contínuo",
+          "loop": true,
+          "status": "integrado"
+        },
+        {
+          "nome": "runa-mesa",
+          "frames": 4,
+          "fps": 8,
+          "loop": true,
+          "status": "integrado"
+        },
+        {
+          "nome": "carimbo-impacto",
+          "frames": 4,
+          "fps": "3 quadros em 300 ms",
+          "loop": false,
+          "status": "integrado",
+          "sincronia": "decisão (mesmo instante do som)"
+        },
+        {
+          "nome": "relampago",
+          "frames": "flash",
+          "fps": "11 s",
+          "loop": true,
+          "status": "integrado"
+        }
+      ]
+    },
+    "hud-moeda": {
+      "tamanho": "16x16",
+      "animacoes": [
+        {
+          "nome": "brilho",
+          "frames": 4,
+          "fps": 6,
+          "loop": true,
+          "status": "integrado"
+        }
+      ]
+    }
+  }
+}

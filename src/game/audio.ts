@@ -21,6 +21,16 @@ let ctx: AudioContext | null = null;
 
 export const isMuted = () => muted;
 
+const mutedListeners = new Set<(muted: boolean) => void>();
+
+/** Avisa quando o som é ligado ou desligado (a trilha usa isso para parar e voltar). */
+export function onMutedChange(listener: (muted: boolean) => void): () => void {
+  mutedListeners.add(listener);
+  return () => {
+    mutedListeners.delete(listener);
+  };
+}
+
 export function setMuted(value: boolean): void {
   muted = value;
   try {
@@ -28,9 +38,11 @@ export function setMuted(value: boolean): void {
   } catch {
     // Sem armazenamento: a escolha vale só nesta sessão.
   }
+  mutedListeners.forEach((listener) => listener(value));
 }
 
-function getCtx(): AudioContext | null {
+/** AudioContext compartilhado por efeitos e trilha; nulo se o som está desligado ou indisponível. */
+export function getAudioContext(): AudioContext | null {
   if (muted || typeof window === 'undefined') return null;
   const Ctor =
     window.AudioContext ??
@@ -88,14 +100,14 @@ function thud(c: AudioContext, dur: number, vol: number, cutoff: number): void {
 }
 
 export function playStamp(kind: 'approve' | 'deny'): void {
-  const c = getCtx();
+  const c = getAudioContext();
   if (!c) return;
   tone(c, { type: 'sine', from: kind === 'approve' ? 150 : 110, to: 45, dur: 0.16, vol: 0.7 });
   thud(c, 0.09, 0.5, 1800);
 }
 
 export function playVerdict(verdict: Verdict): void {
-  const c = getCtx();
+  const c = getAudioContext();
   if (!c) return;
 
   if (verdict === 'perfect') {

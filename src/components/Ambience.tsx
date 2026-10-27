@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-
-type Mood = 'embers' | 'mist' | 'rain';
+import { createMotes, stepMotes, type Mood, type Mote } from '../render/motes';
+import { reduced } from '../render/motion';
 
 interface Props {
   mood?: Mood;
@@ -9,28 +9,9 @@ interface Props {
   className?: string;
 }
 
-const PALETTE: Record<Mood, number[]> = {
-  embers: [0xe0b44c, 0xffd36b, 0xf1e4c3],
-  mist: [0xa79fc9, 0x7a66e0, 0xf1e4c3],
-  rain: [0x9fb8e8, 0xc9d8ff, 0x7f9bd6],
-};
-
-const reduced = () =>
-  typeof window !== 'undefined' &&
-  typeof window.matchMedia === 'function' &&
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-interface Mote {
-  g: import('pixi.js').Graphics;
-  vx: number;
-  vy: number;
-  phase: number;
-  base: number;
-}
-
 /**
- * Partículas flutuantes (brasas ou névoa) desenhadas com PixiJS num canvas transparente.
- * O PixiJS é carregado sob demanda para não pesar no carregamento inicial do jogo.
+ * Partículas flutuantes (brasas, névoa ou chuva) num canvas 2D transparente.
+ * Canvas 2D não usa contexto WebGL nem baixa o PixiJS, então serve até na tela de título.
  */
 export function Ambience({ mood = 'embers', count = 36, className }: Props) {
   const host = useRef<HTMLDivElement>(null);
@@ -39,79 +20,63 @@ export function Ambience({ mood = 'embers', count = 36, className }: Props) {
     const el = host.current;
     if (!el || reduced()) return;
 
-    let cancelled = false;
-    let cleanup: (() => void) | undefined;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    canvas.style.cssText = 'display:block;width:100%;height:100%';
+    el.appendChild(canvas);
 
-    void (async () => {
-      const { Application, Graphics } = await import('pixi.js');
-      if (cancelled) return;
+    let w = 0;
+    let h = 0;
+    let dpr = 1;
+    let motes: Mote[] | null = null;
 
-      const app = new Application();
-      try {
-        await app.init({
-          resizeTo: el,
-          backgroundAlpha: 0,
-          antialias: true,
-          autoDensity: true,
-          resolution: Math.min(window.devicePixelRatio || 1, 2),
-        });
-      } catch {
-        // Sem WebGL/canvas: o jogo segue sem as partículas.
-        return;
-      }
-      if (cancelled) {
-        app.destroy(true, { children: true });
-        return;
-      }
+    const resize = () => {
+      w = el.clientWidth;
+      h = el.clientHeight;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.round(w * dpr));
+      canvas.height = Math.max(1, Math.round(h * dpr));
+      if (!motes && w > 0 && h > 0) motes = createMotes(mood, count, w, h);
+    };
+    resize();
+    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(resize) : null;
+    ro?.observe(el);
 
-      el.appendChild(app.canvas);
-      const colors = PALETTE[mood];
-      const motes: Mote[] = [];
-      const rand = (a: number, b: number) => a + Math.random() * (b - a);
+    let raf = 0;
+    let last = performance.now();
+    const frame = (now: number) => {
+      raf = requestAnimationFrame(frame);
+      const dt = Math.min(3, (now - last) / (1000 / 60));
+      last = now;
+      if (!motes) return;
+      stepMotes(motes, mood, dt, w, h);
 
-      for (let i = 0; i < count; i++) {
-        const g = new Graphics();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      for (const m of motes) {
+        ctx.globalAlpha = m.alpha;
         if (mood === 'rain') {
-          // Fio de chuva inclinado: cada gota tem comprimento e opacidade próprios (profundidade).
-          const len = rand(8, 22);
-          g.moveTo(0, 0).lineTo(-len * 0.12, len).stroke({ width: rand(0.6, 1.3), color: colors[i % colors.length], alpha: rand(0.18, 0.5) });
+          ctx.strokeStyle = m.color;
+          ctx.lineWidth = m.width;
+          ctx.beginPath();
+          ctx.moveTo(m.x, m.y);
+          ctx.lineTo(m.x - m.len * 0.12, m.y + m.len);
+          ctx.stroke();
         } else {
-          const r = mood === 'mist' ? rand(14, 38) : rand(1, 2.6);
-          g.circle(0, 0, r).fill({ color: colors[i % colors.length], alpha: mood === 'mist' ? 0.05 : rand(0.35, 0.9) });
+          ctx.fillStyle = m.color;
+          ctx.beginPath();
+          ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+          ctx.fill();
         }
-        g.x = rand(0, app.screen.width);
-        g.y = rand(0, app.screen.height);
-        app.stage.addChild(g);
-        motes.push({
-          g,
-          vx: mood === 'rain' ? -rand(1.2, 2.2) : mood === 'mist' ? rand(0.05, 0.2) : rand(-0.15, 0.15),
-          vy: mood === 'rain' ? rand(11, 19) : mood === 'mist' ? rand(-0.03, 0.03) : -rand(0.1, 0.45),
-          phase: rand(0, Math.PI * 2),
-          base: g.alpha,
-        });
       }
-
-      app.ticker.add((t) => {
-        const { width, height } = app.screen;
-        const dt = t.deltaTime;
-        for (const m of motes) {
-          m.phase += 0.02 * dt;
-          m.g.x += (m.vx + (mood === 'rain' ? 0 : Math.sin(m.phase) * 0.15)) * dt;
-          m.g.y += m.vy * dt;
-          if (mood === 'embers') m.g.alpha = m.base * (0.6 + 0.4 * Math.sin(m.phase * 2));
-          if (m.g.y < -10) m.g.y = height + 10;
-          if (m.g.y > height + 40) m.g.y = -10;
-          if (m.g.x > width + 40) m.g.x = -40;
-          if (m.g.x < -40) m.g.x = width + 40;
-        }
-      });
-
-      cleanup = () => app.destroy(true, { children: true });
-    })();
+    };
+    raf = requestAnimationFrame(frame);
 
     return () => {
-      cancelled = true;
-      cleanup?.();
+      cancelAnimationFrame(raf);
+      ro?.disconnect();
+      canvas.remove();
     };
   }, [mood, count]);
 

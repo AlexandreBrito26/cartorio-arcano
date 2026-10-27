@@ -1,0 +1,58 @@
+{
+  "name": "Cartório das Brumas",
+  "version": 1,
+  "note": "Paleta fixa do jogo inteiro (44 cores). Fonte da verdade para arte e código. Não adicionar cor fora daqui.",
+  "colors": [
+    { "id": "noite-0", "hex": "#0F0B1F", "role": "fundo mais escuro" },
+    { "id": "noite-1", "hex": "#120E24", "role": "fundo do título e do balcão" },
+    { "id": "noite-2", "hex": "#17122E", "role": "montanha distante" },
+    { "id": "noite-3", "hex": "#1C1638", "role": "céu" },
+    { "id": "noite-4", "hex": "#2B2144", "role": "céu alto e sombras de painel" },
+    { "id": "noite-5", "hex": "#3B2F6B", "role": "sombra roxa de volume" },
+
+    { "id": "ouro-0", "hex": "#8A6A2C", "role": "ouro escuro, contorno" },
+    { "id": "ouro-1", "hex": "#B98A2A", "role": "ouro médio" },
+    { "id": "ouro-2", "hex": "#E0B44C", "role": "ouro principal (anel, runas, botões)" },
+    { "id": "ouro-3", "hex": "#F6D87A", "role": "ouro claro, brilho" },
+    { "id": "ouro-4", "hex": "#FFE9A8", "role": "chama, núcleo da runa" },
+
+    { "id": "carimbo-0", "hex": "#5A2A32", "role": "tinta seca" },
+    { "id": "carimbo-1", "hex": "#7D2630", "role": "sombra do carimbo" },
+    { "id": "carimbo-2", "hex": "#B23A48", "role": "carimbo vermelho" },
+    { "id": "carimbo-3", "hex": "#CC4B5A", "role": "carimbo, destaque de negação" },
+
+    { "id": "madeira-0", "hex": "#1B110D", "role": "madeira mais escura" },
+    { "id": "madeira-1", "hex": "#2A1D14", "role": "madeira da mesa" },
+    { "id": "madeira-2", "hex": "#2B1D17", "role": "vão do portão, interior" },
+    { "id": "madeira-3", "hex": "#4A2E14", "role": "madeira média" },
+    { "id": "madeira-4", "hex": "#5A3A22", "role": "couro, bordas" },
+    { "id": "madeira-5", "hex": "#6B5330", "role": "couro claro" },
+    { "id": "madeira-6", "hex": "#C98F63", "role": "couro iluminado" },
+    { "id": "madeira-7", "hex": "#D9A273", "role": "madeira iluminada" },
+
+    { "id": "pedra-0", "hex": "#3A2820", "role": "pedra escura" },
+    { "id": "pedra-1", "hex": "#CDBD92", "role": "pedra clara" },
+    { "id": "pergaminho-0", "hex": "#E8D9A8", "role": "pergaminho" },
+    { "id": "pergaminho-1", "hex": "#EFE2BF", "role": "papel do documento" },
+    { "id": "pergaminho-2", "hex": "#F1E4C3", "role": "pedra do portão, texto claro" },
+
+    { "id": "mare-0", "hex": "#0A1124", "role": "água profunda" },
+    { "id": "mare-1", "hex": "#2A5DB0", "role": "água média" },
+    { "id": "mare-2", "hex": "#3D8FA3", "role": "ciano-maré" },
+    { "id": "mare-3", "hex": "#5FB3C4", "role": "ciano claro, legenda" },
+    { "id": "mare-4", "hex": "#BFE9FF", "role": "espuma, brilho frio" },
+
+    { "id": "nevoa-0", "hex": "#7A66E0", "role": "névoa roxa viva" },
+    { "id": "nevoa-1", "hex": "#A79FC9", "role": "névoa média" },
+    { "id": "nevoa-2", "hex": "#D9D2F2", "role": "névoa clara, espectro" },
+
+    { "id": "luz-fria-0", "hex": "#9FB3D9", "role": "luz fria média" },
+    { "id": "luz-fria-1", "hex": "#BCD0FF", "role": "luz fria clara" },
+    { "id": "luz-fria-2", "hex": "#D8D8E0", "role": "prata, metal" },
+
+    { "id": "verde-0", "hex": "#3D8B5A", "role": "verde de guilda, fada" },
+    { "id": "verde-1", "hex": "#7FC8B8", "role": "verde claro, tritão" },
+
+    { "id": "pele-0", "hex": "#F1C9A5", "role": "pele clara" }
+  ]
+}

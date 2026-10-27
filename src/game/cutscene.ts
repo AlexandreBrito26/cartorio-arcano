@@ -1,7 +1,23 @@
 export type SceneArt = 'road' | 'gate' | 'office' | 'mistress' | 'stamp';
 
-/** Movimento lento da "câmera" sobre a arte da cena. */
-export type SceneCamera = 'still' | 'zoom-in' | 'zoom-out' | 'pan-left' | 'pan-right';
+/**
+ * Movimento lento da "câmera" sobre a arte da cena.
+ * - zoom-in / zoom-out: aproximação e afastamento suaves.
+ * - dolly-in / push-in / pull-back: aproximação forte com parallax entre as camadas da arte.
+ * - pan-left / pan-right: a imagem desliza para o lado indicado, com parallax.
+ * - tilt-up / tilt-down: a câmera sobe ou desce pela cena, com parallax.
+ */
+export type SceneCamera =
+  | 'still'
+  | 'zoom-in'
+  | 'zoom-out'
+  | 'pan-left'
+  | 'pan-right'
+  | 'dolly-in'
+  | 'push-in'
+  | 'pull-back'
+  | 'tilt-up'
+  | 'tilt-down';
 
 /** Como a cena entra: fusão suave, íris (círculo que abre) ou corte seco. */
 export type SceneTransition = 'fade' | 'iris' | 'cut';
@@ -16,14 +32,21 @@ export interface CutsceneScene {
   /** Quem fala (aparece como legenda acima do texto). Sem valor, é narração. */
   speaker?: string;
   camera?: SceneCamera;
+  /** Ponto (em % da imagem) para onde a câmera se aproxima ou de onde se afasta. Padrão: centro. */
+  focus?: { x: number; y: number };
   transition?: SceneTransition;
   /** Partículas da cena. Sem valor, segue o padrão da arte (ver `defaultMood`). */
   mood?: SceneMood;
   /** Quantidade de partículas. Sem valor, segue o padrão da arte. */
   particles?: number;
-  /** Carimbo sonoro tocado quando a cena entra. */
+  /** Carimbo sonoro tocado na cena (com tremor de câmera e a música resolvendo). */
   sfx?: 'approve' | 'deny';
+  /** Atraso (ms) do `sfx` desde a entrada da cena; use para casar com o impacto na arte. */
+  sfxAt?: number;
 }
+
+/** Instante (ms) em que o carimbo da última cena toca o papel (ver `.stamp-drop` no CSS). */
+export const STAMP_IMPACT_MS = 1700;
 
 export type CutsceneId = 'intro';
 
@@ -36,22 +59,25 @@ export interface CutsceneDef {
   scenes: readonly CutsceneScene[];
   /** Rótulo do botão da última cena. */
   doneLabel?: string;
+  /** Cartão de título (texto grande sobre fundo escuro) antes da primeira cena. */
+  titleCard?: string;
 }
 
 /** Abertura: o que acontece antes do primeiro dia no balcão. */
 const INTRO_SCENES_DATA: readonly CutsceneScene[] = [
   {
     art: 'road',
-    camera: 'zoom-in',
+    camera: 'dolly-in',
+    focus: { x: 54, y: 70 },
     transition: 'fade',
     lines: [
-      'Ano 417. A estrada das Brumas serpenteia até a única fronteira que ainda não se perdeu na névoa.',
+      'A estrada das Brumas serpenteia até a única fronteira que ainda não se perdeu na névoa.',
       'Você chega ao amanhecer, com uma carta de recomendação e as botas molhadas.',
     ],
   },
   {
     art: 'gate',
-    camera: 'pan-right',
+    camera: 'tilt-up',
     transition: 'fade',
     lines: [
       'O portão é velho, mas a runa sobre o arco continua acesa. Quem passa ali sem papel em dia não volta o mesmo.',
@@ -62,12 +88,13 @@ const INTRO_SCENES_DATA: readonly CutsceneScene[] = [
     camera: 'pan-left',
     transition: 'fade',
     lines: [
-      'Dentro, o Cartório Arcano cheira a cera, tinta e pergaminho. Há três carimbos na mesa e uma pilha de regulamentos maior que você.',
+      'Dentro, o Cartório das Brumas cheira a cera, tinta e pergaminho. Há três carimbos na mesa e uma pilha de regulamentos maior que você.',
     ],
   },
   {
     art: 'mistress',
-    camera: 'zoom-in',
+    camera: 'push-in',
+    focus: { x: 50, y: 42 },
     transition: 'iris',
     speaker: 'Mestra Aurelha',
     lines: [
@@ -77,9 +104,11 @@ const INTRO_SCENES_DATA: readonly CutsceneScene[] = [
   },
   {
     art: 'stamp',
-    camera: 'zoom-out',
+    camera: 'pull-back',
+    focus: { x: 58, y: 66 },
     transition: 'cut',
     sfx: 'approve',
+    sfxAt: STAMP_IMPACT_MS,
     lines: [
       'Ela empurra o carimbo na sua direção. A fila já dobra a esquina.',
       'Seu primeiro dia começa agora.',
@@ -94,6 +123,7 @@ export const CUTSCENES: Record<CutsceneId, CutsceneDef> = {
     unlockDay: 1,
     scenes: INTRO_SCENES_DATA,
     doneLabel: 'Abrir o cartório',
+    titleCard: 'Ano 417',
   },
 };
 

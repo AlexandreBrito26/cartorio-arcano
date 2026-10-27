@@ -21,7 +21,7 @@ export const LORE_INTRO = {
   paragraphs: [
     'Dizem que o mundo antigo era um só, e que se partiu em oito reinos quando as Brumas subiram. Cada reino ficou do seu lado, cercado de névoa, e por gerações ninguém soube se os outros ainda existiam.',
     'Foi o Conselho das Brumas quem fixou o entreposto no único ponto onde a névoa afina: uma ponte de pedra, uma muralha baixa e um balcão com uma vela acesa. Quem quer cruzar de um reino a outro passa por aqui, e precisa de papel.',
-    'O Cartório Arcano nasceu desse balcão. Sua regra de ouro é antiga: a névoa esconde o rosto e o passado, mas um documento bem conferido não mente. Por isso o carimbo vale tanto quanto uma muralha.',
+    'O Cartório das Brumas nasceu desse balcão. Sua regra de ouro é antiga: a névoa esconde o rosto e o passado, mas um documento bem conferido não mente. Por isso o carimbo vale tanto quanto uma muralha.',
   ],
 };
 
@@ -50,7 +50,7 @@ export const HISTORY: LoreEntry<HistoryId>[] = [
   },
   {
     id: 'cartorio',
-    title: 'O Cartório Arcano',
+    title: 'O Cartório das Brumas',
     tagline: 'Carta, Passe, Selo e carimbo',
     unlockDay: 1,
     body: [

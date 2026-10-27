@@ -2,7 +2,8 @@ import type { Dispatch } from 'react';
 import { MAX_DAY, formatDate } from '../game/constants';
 import { eventForDay } from '../game/events';
 import { Ambience } from './Ambience';
-import { Logo } from './Logo';
+import { CanvasLogo } from './CanvasLogo';
+import { preloadBundles } from '../render/assets';
 import { ruleText } from '../game/rules';
 import type { Action, GameState } from '../game/state';
 
@@ -11,19 +12,22 @@ interface Props {
   dispatch: Dispatch<Action>;
 }
 
+/** Começa a baixar o Pixi e as texturas assim que o jogador mostra intenção de jogar. */
+const warmUp = () => void preloadBundles(['abertura', 'balcao', 'personagens']);
+
 export function Title({ state, dispatch }: Props) {
   return (
     <main className="screen title-screen">
       <Ambience className="ambience-page" count={46} />
-      <Logo size={132} className="title-logo" title="Logo do Cartório Arcano" />
+      <CanvasLogo className="title-logo" />
       <p className="eyebrow">Um jogo de carimbos entre mundos</p>
-      <h1>Cartório Arcano</h1>
+      <h1 className="visually-hidden">Cartório das Brumas</h1>
       <p className="lead">
         O cartório fica no entreposto entre mundos, onde humanos, elfos, dragões, golems e espectros
         dependem do mesmo papel. Confira Carta, Passe e documentos da espécie, siga o Regulamento e
         decida quem entra. Cada decisão errada sai do seu bolso.
       </p>
-      <div className="actions">
+      <div className="actions" onPointerEnter={warmUp} onPointerDown={warmUp}>
         <button type="button" className="primary" autoFocus onClick={() => dispatch({ type: 'NEW_GAME' })}>
           Novo jogo
         </button>
@@ -41,6 +45,8 @@ export function Briefing({ state, dispatch }: Props) {
   const { rules } = state;
   return (
     <main className="screen briefing">
+      {/* Primeiro dia: brasas do PixiJS flutuam atrás da abertura do cartório. */}
+      {rules.day === 1 && <Ambience mood="embers" count={30} className="ambience-page ambience-briefing" />}
       <p className="eyebrow">
         {rules.day > MAX_DAY ? `Plantão, dia ${rules.day}` : `Dia ${rules.day} de ${MAX_DAY}`} · {formatDate(rules.today)}
       </p>

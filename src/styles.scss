@@ -315,6 +315,13 @@ kbd {
   margin: 0 auto;
 }
 
+@media (min-width: 1800px) {
+  .counter {
+    max-width: 1640px;
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+}
+
 /* ---------- cena do balcão (cinematográfica) ---------- */
 
 .stage {
@@ -338,17 +345,20 @@ kbd {
   isolation: isolate;
 }
 
-.st-bg,
-.st-partition {
+/* Canvas único do balcão (PixiStage): fundo, viajante, chuva e divisória são camadas dele. */
+.pixi-stage {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
+  z-index: 0;
 }
 
-.st-bg {
-  z-index: 0;
+/* O canvas é lógico (resolução interna fixa): o tamanho em CSS é definido em JS, em múltiplo inteiro. */
+.pixi-stage canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  image-rendering: pixelated;
 }
 
 .st-traveler {
@@ -360,37 +370,10 @@ kbd {
   aspect-ratio: 120 / 140;
   transform: translateX(-50%);
   transform-origin: 50% 100%;
+  /* Com Pixi, o brilho, a saturação e a entrada "emerge" são feitos no canvas (render/stageLayout.ts);
+     isto vale só para a reserva em PNG (sem WebGL). */
   filter: brightness(0.82) saturate(0.85) drop-shadow(0 0 16px #7da0ff40);
   animation: emerge 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-.st-traveler .portrait {
-  height: 100%;
-  animation: breathe 4.2s ease-in-out infinite;
-  transform-origin: 50% 100%;
-}
-
-.st-traveler .blink {
-  animation: blink 5.5s infinite;
-  transform-origin: 60px 60px;
-}
-
-.st-traveler.react-approve .portrait {
-  animation: nod 0.7s ease-in-out 1;
-}
-
-.st-traveler.react-deny .portrait {
-  animation: shake 0.55s ease-in-out 1;
-  filter: saturate(0.6);
-}
-
-.st-rain {
-  z-index: 2;
-  opacity: 0.9;
-}
-
-.st-partition {
-  z-index: 3;
 }
 
 .st-warm {
@@ -415,24 +398,6 @@ kbd {
     linear-gradient(180deg, #000000aa 0, transparent 12%, transparent 88%, #000000aa 100%);
 }
 
-.st-flash {
-  position: absolute;
-  inset: 0;
-  z-index: 6;
-  pointer-events: none;
-  background: #b9ccff;
-  opacity: 0;
-  mix-blend-mode: screen;
-  animation: lightning 11s linear infinite 4s;
-}
-
-.st-flash svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
 .st-place {
   position: absolute;
   z-index: 7;
@@ -444,39 +409,6 @@ kbd {
   text-transform: uppercase;
   color: #cdd6ee99;
   text-shadow: 0 1px 6px #000;
-}
-
-/* partes do cenário */
-.st-clouds-far {
-  animation: drift 90s linear infinite alternate;
-}
-.st-clouds-near {
-  animation: drift 55s linear infinite alternate-reverse;
-}
-.st-mist-a {
-  animation: drift 26s ease-in-out infinite alternate;
-}
-.st-mist-b {
-  animation: drift 38s ease-in-out infinite alternate-reverse;
-}
-.st-rune,
-.st-lamp {
-  animation: pulse 3.6s ease-in-out infinite;
-}
-.st-window {
-  animation: pulse 5s ease-in-out infinite;
-}
-.st-lamp-flame,
-.st-flame {
-  animation: flame 0.14s steps(2) infinite alternate;
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-}
-.st-candle {
-  animation: candle 2.6s ease-in-out infinite;
-}
-.st-swing {
-  animation: swing 6s ease-in-out infinite alternate;
 }
 
 /* legenda de cinema com a fala do viajante */
@@ -515,79 +447,6 @@ kbd {
     transform: translateX(-50%) translateY(18px) scale(0.94);
   }
 }
-@keyframes breathe {
-  50% {
-    transform: scale(1.012, 1.02);
-  }
-}
-@keyframes blink {
-  0%,
-  93%,
-  100% {
-    transform: scaleY(1);
-  }
-  96% {
-    transform: scaleY(0.08);
-  }
-}
-@keyframes nod {
-  30% {
-    transform: translateY(6px) rotate(1.2deg);
-  }
-  60% {
-    transform: translateY(-2px);
-  }
-}
-@keyframes shake {
-  20%,
-  60% {
-    transform: translateX(-7px);
-  }
-  40%,
-  80% {
-    transform: translateX(7px);
-  }
-}
-@keyframes lightning {
-  0%,
-  91%,
-  100% {
-    opacity: 0;
-  }
-  92% {
-    opacity: 0.5;
-  }
-  93% {
-    opacity: 0.08;
-  }
-  94.5% {
-    opacity: 0.38;
-  }
-  97% {
-    opacity: 0;
-  }
-}
-@keyframes drift {
-  from {
-    transform: translateX(-4%);
-  }
-  to {
-    transform: translateX(4%);
-  }
-}
-@keyframes pulse {
-  50% {
-    opacity: 0.55;
-  }
-}
-@keyframes flame {
-  from {
-    transform: scale(1, 1) translateX(0);
-  }
-  to {
-    transform: scale(0.9, 1.12) translateX(0.6px);
-  }
-}
 @keyframes candle {
   0%,
   100% {
@@ -598,14 +457,6 @@ kbd {
   }
   60% {
     opacity: 0.94;
-  }
-}
-@keyframes swing {
-  from {
-    transform: rotate(-2.5deg);
-  }
-  to {
-    transform: rotate(2.5deg);
   }
 }
 @keyframes caret {
@@ -1105,25 +956,6 @@ kbd {
   filter: drop-shadow(0 0 22px #e0b44c55);
 }
 
-.logo-glow {
-  transform-origin: 60px 58px;
-  animation: logo-pulse 3.6s ease-in-out infinite;
-}
-
-.logo-star {
-  transform-origin: 60px 56px;
-  animation: logo-spin 14s linear infinite;
-}
-
-@keyframes logo-pulse {
-  0%, 100% { opacity: 0.55; transform: scale(0.92); }
-  50% { opacity: 1; transform: scale(1.08); }
-}
-
-@keyframes logo-spin {
-  to { transform: rotate(360deg); }
-}
-
 /* ---------- partículas (PixiJS) ---------- */
 
 .ambience {
@@ -1145,6 +977,39 @@ kbd {
   opacity: 0.8;
 }
 
+/* Logo do título, em canvas 2D (reserva: selo em PNG). */
+.canvas-logo {
+  position: relative;
+  width: min(480px, 100%);
+  aspect-ratio: 480 / 300;
+  margin: 0 auto;
+}
+
+.canvas-logo canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.canvas-logo-fallback {
+  display: block;
+  margin: 0 auto;
+}
+
+.canvas-logo-live .canvas-logo-fallback {
+  display: none;
+}
+
+.ambience-briefing {
+  position: fixed;
+  opacity: 0.6;
+}
+
+.briefing > :not(.ambience) {
+  position: relative;
+  z-index: 1;
+}
+
 .title-screen > :not(.ambience) {
   position: relative;
   z-index: 1;
@@ -1153,8 +1018,27 @@ kbd {
 /* ---------- cutscene ---------- */
 
 .cutscene {
-  width: min(760px, 100% - 32px);
+  /* Limita pela altura da tela para o quadro 16:9 e a legenda caberem sem rolagem. */
+  width: min(760px, 100% - 32px, calc((100vh - 230px) * 16 / 9));
   margin: 3vh auto;
+}
+
+/* Desktop: a cena cresce com a janela, sem passar da altura disponível. */
+@media (min-width: 1024px) {
+  .cutscene {
+    width: min(1120px, 100% - 64px, calc((100vh - 230px) * 16 / 9));
+  }
+}
+
+/* Full HD e acima: a cena e o texto ganham mais espaço, mantendo a limitação pela altura. */
+@media (min-width: 1800px) {
+  .cutscene {
+    width: min(1440px, 100% - 96px, calc((100vh - 230px) * 16 / 9));
+  }
+
+  .cutscene-text {
+    font-size: 1.5rem;
+  }
 }
 
 .cutscene-frame {
@@ -1165,12 +1049,6 @@ kbd {
   border: 1px solid #ffffff22;
   box-shadow: 0 18px 50px #00000066, 0 0 0 4px #00000033;
   cursor: pointer;
-}
-
-.scene-art {
-  display: block;
-  width: 100%;
-  height: 100%;
 }
 
 .scene-stage,
@@ -1197,31 +1075,127 @@ kbd {
   to { clip-path: circle(75% at 50% 50%); }
 }
 
-/* "Câmera": movimento lento sobre a arte (a escala maior que 1 evita bordas vazias). */
-.cam-still { transform: scale(1.02); }
-.cam-zoom-in { animation: cam-zoom-in 14s ease-out both; }
-.cam-zoom-out { animation: cam-zoom-out 14s ease-out both; }
-.cam-pan-left { animation: cam-pan-left 14s ease-out both; }
-.cam-pan-right { animation: cam-pan-right 14s ease-out both; }
-
-@keyframes cam-zoom-in {
-  from { transform: scale(1); }
-  to { transform: scale(1.14); }
+/*
+ * "Câmera": o movimento (zoom, pan, tilt, parallax) é calculado em JavaScript por
+ * src/render/cutsceneCamera.ts e desenhado no canvas Pixi. Aqui ficam só o balanço
+ * de mão (.scene-sway) e o tremor do carimbo (.scene-shake).
+ */
+.scene-camera {
+  will-change: transform;
 }
 
-@keyframes cam-zoom-out {
-  from { transform: scale(1.14); }
-  to { transform: scale(1); }
+/* Respiração de câmera na mão: um balanço quase imperceptível, por cima do movimento principal. */
+.scene-shake,
+.scene-sway {
+  position: absolute;
+  inset: 0;
 }
 
-@keyframes cam-pan-left {
-  from { transform: scale(1.12) translateX(3%); }
-  to { transform: scale(1.12) translateX(-3%); }
+.scene-sway {
+  scale: 1.03;
+  animation: cam-sway 9s ease-in-out infinite alternate;
 }
 
-@keyframes cam-pan-right {
-  from { transform: scale(1.12) translateX(-3%); }
-  to { transform: scale(1.12) translateX(3%); }
+@keyframes cam-sway {
+  from { translate: -0.3% 0.2%; rotate: -0.14deg; }
+  to { translate: 0.3% -0.2%; rotate: 0.14deg; }
+}
+
+/* Impacto do carimbo: um tranco curto da câmera, no instante em que ele toca o papel. */
+.scene-shake.impact {
+  animation: cam-shake 0.55s ease-out var(--shake-at, 0ms) both;
+}
+
+@keyframes cam-shake {
+  0% { transform: translate(0, 0); }
+  12% { transform: translate(-0.9%, 1.4%) rotate(-0.25deg); }
+  30% { transform: translate(0.7%, -0.8%) rotate(0.18deg); }
+  55% { transform: translate(-0.3%, 0.4%); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Letterbox: faixas pretas de cinema (visível ≈ 2,2:1). Abrem fechando sobre a imagem. */
+.letterbox {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+
+  span {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 10.5%;
+    background: #000;
+    animation: letterbox-in 1.6s cubic-bezier(0.65, 0, 0.35, 1) both;
+  }
+
+  .lb-top { top: 0; }
+  .lb-bottom { bottom: 0; }
+}
+
+@keyframes letterbox-in {
+  from { height: 0; }
+  to { height: 10.5%; }
+}
+
+/* Cartão de título ("Ano 417"): letras que se fecham sobre um fundo de brasas. */
+.title-card {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: radial-gradient(ellipse at 50% 55%, #1c1638 0%, #0a0714 70%);
+
+  &.leaving {
+    pointer-events: none;
+    animation: title-card-out 0.9s ease-in both;
+  }
+
+  .ambience {
+    z-index: 0;
+  }
+}
+
+.title-card-text {
+  position: relative;
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: clamp(2rem, 8vw, 3.6rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-shadow: 0 0 28px #e0b44c55;
+  white-space: nowrap;
+  animation: title-text-in 3.4s cubic-bezier(0.2, 0.6, 0.2, 1) 0.5s both;
+}
+
+.title-card-rule {
+  position: relative;
+  width: min(220px, 40%);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  transform-origin: center;
+  animation: title-rule-in 1.6s ease-out 1.2s both;
+}
+
+@keyframes title-text-in {
+  from { opacity: 0; letter-spacing: 0.9em; filter: blur(8px); }
+  35% { opacity: 1; filter: blur(0); }
+  to { opacity: 1; letter-spacing: 0.36em; filter: blur(0); }
+}
+
+@keyframes title-rule-in {
+  from { opacity: 0; transform: scaleX(0); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+@keyframes title-card-out {
+  to { opacity: 0; }
 }
 
 .cutscene-speaker {
@@ -1301,65 +1275,9 @@ kbd {
   transform: scale(1.3);
 }
 
-.twinkle {
-  animation: twinkle 2.8s ease-in-out infinite;
-}
-
-.rune {
-  animation: logo-pulse 3s ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-.mist {
-  animation: drift 9s ease-in-out infinite alternate;
-}
-
-.flame {
-  transform-box: fill-box;
-  transform-origin: bottom center;
-  animation: flicker 1.4s ease-in-out infinite;
-}
-
-.stamp-drop {
-  animation: stamp-press 2.6s ease-in-out 0.6s infinite;
-}
-
-.stamp-mark {
-  animation: stamp-ink 2.6s ease-in-out 0.6s infinite;
-}
-
 @keyframes scene-in {
   from { opacity: 0; transform: scale(1.03); }
   to { opacity: 1; transform: none; }
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
-}
-
-@keyframes drift {
-  from { transform: translateX(-14px); }
-  to { transform: translateX(14px); }
-}
-
-@keyframes flicker {
-  0%, 100% { opacity: 1; transform: scale(1, 1); }
-  30% { opacity: 0.85; transform: scale(0.96, 1.06); }
-  60% { opacity: 1; transform: scale(1.03, 0.97); }
-}
-
-@keyframes stamp-press {
-  0%, 20% { transform: translateY(0); }
-  42% { transform: translateY(44px); }
-  60%, 100% { transform: translateY(0); }
-}
-
-@keyframes stamp-ink {
-  0%, 40% { opacity: 0; transform: translate(196px, 118px) rotate(-10deg) scale(1.4); }
-  48%, 90% { opacity: 1; transform: translate(196px, 118px) rotate(-10deg) scale(1); }
-  100% { opacity: 0; }
 }
 
 @media (max-width: 680px) {
@@ -1376,7 +1294,6 @@ kbd {
     transition: none !important;
   }
 }
-
 
 /* ---------- Entreposto entre mundos: acento de cor e UX ---------- */
 :root {
@@ -1442,7 +1359,6 @@ button.secondary,
     padding: 16px;
   }
 }
-
 
 // Celular: a mesa empilha, a barra de decisão fica fixa embaixo e os botões ficam fáceis de tocar.
 @media (max-width: $breakpoint-phone) {
@@ -1594,4 +1510,92 @@ button.secondary,
       color: var(--muted);
     }
   }
+}
+
+/* Cena da abertura em PixiJS: preenche o quadro; a câmera e o parallax ficam no canvas. */
+.pixel-cutscene {
+  position: absolute;
+  inset: 0;
+}
+
+.pixel-cutscene canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* ---------- interface em pixel ----------
+   Cantos retos, anel de 2 px e sombra em degrau, sem raio nem desfoque. */
+.panel,
+.modal,
+.modal.diary {
+  border-radius: 0;
+  border: 0;
+  box-shadow:
+    0 0 0 2px #0f0b1f,
+    0 0 0 4px #8a6a2c,
+    6px 6px 0 2px #0f0b1f;
+}
+
+.primary,
+.secondary,
+.next-btn {
+  border-radius: 0;
+  font-family: var(--font-title);
+  letter-spacing: 0.06em;
+  image-rendering: pixelated;
+}
+
+.primary,
+.next-btn {
+  border: 0;
+  box-shadow:
+    0 0 0 2px #2a1f08,
+    0 0 0 4px #8a6a2c,
+    0 6px 0 2px #2a1f08;
+}
+
+.primary:active,
+.next-btn:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 0 0 2px #2a1f08,
+    0 0 0 4px #8a6a2c,
+    0 3px 0 2px #2a1f08;
+}
+
+.secondary {
+  border: 0;
+  box-shadow: 0 0 0 2px #0f0b1f, 0 0 0 3px #ffffff33;
+}
+
+/* Ícones do HUD: 16×16, nítidos. */
+.hud dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-icon {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+/* Logo da topbar em pixel. */
+.brand .logo {
+  image-rendering: pixelated;
+}
+
+/* Reserva do retrato (sem WebGL). */
+.portrait-fallback {
+  margin: 0 auto;
+  image-rendering: pixelated;
+}
+
+/* Reserva do palco: se o canvas Pixi não iniciar, o balcão mantém um fundo noturno, não um vazio. */
+.stage-view {
+  background: linear-gradient(180deg, #0a1124 0%, #16223f 55%, #2b2144 100%);
 }
