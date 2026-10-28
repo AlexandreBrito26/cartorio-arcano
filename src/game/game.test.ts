@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isMuted, playResult, setMuted } from './audio';
+import { compareMarks } from './compare';
 import { MAX_DAY, MONTH_NAMES, formatDate, formatDateFull, getDayRules } from './constants';
 import { buildApplicant, generateDay, mutateName } from './generator';
 import { createRng } from './rng';
@@ -221,5 +222,45 @@ describe('datas com número do mês', () => {
     // Uma data posterior sempre tem (mês, dia) maior, e o número do mês deixa isso à vista.
     const month = (n: number) => Number(/\((\d+)º mês\)/.exec(formatDateFull(n))![1]);
     for (let n = 0; n < 359; n++) expect(month(n + 1)).toBeGreaterThanOrEqual(month(n));
+  });
+});
+
+describe('conferência dos campos grifados', () => {
+  const rules = getDayRules(8);
+  const fresh = (seed: number) => generateDay(rules, seed);
+
+  it('concorda com evaluate() em todo o dia, para nome, reino, espécie e validade', () => {
+    let seen = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      for (const a of fresh(seed)) {
+        const codes = new Set(evaluate(a, rules).map((v) => v.code));
+        const all = new Set(['id.name', 'pass.name', 'id.realm', 'pass.realm', 'id.species', 'especie.species', 'id.expiry', 'pass.expiry']);
+        for (const c of compareMarks(a, rules, all)) {
+          seen++;
+          if (c.id === 'nome') expect(c.ok).toBe(!codes.has('NOME_DIVERGENTE'));
+          if (c.id === 'reino') expect(c.ok).toBe(!codes.has('REINO_DIVERGENTE'));
+          if (c.id === 'especie') expect(c.ok).toBe(!codes.has('ESPECIE_SEM_DOC'));
+        }
+        const expired = compareMarks(a, rules, all).some((c) => c.id.startsWith('validade') && !c.ok);
+        expect(expired).toBe(codes.has('DOC_VENCIDO'));
+      }
+    }
+    expect(seen).toBeGreaterThan(100);
+  });
+
+  it('só responde quando os dois campos do par estão grifados', () => {
+    const a = fresh(3).find((x) => x.identity && x.pass)!;
+    expect(compareMarks(a, rules, new Set())).toEqual([]);
+    expect(compareMarks(a, rules, new Set(['id.name']))).toEqual([]);
+    const r = compareMarks(a, rules, new Set(['id.name', 'pass.name']));
+    expect(r).toHaveLength(1);
+    expect(r[0].text).toMatch(/^Nome: /);
+  });
+
+  it('avisa quando a regra ainda não vale no dia', () => {
+    const day1 = getDayRules(1);
+    const a = generateDay(day1, 5).find((x) => x.identity && x.pass)!;
+    const r = compareMarks(a, day1, new Set(['id.realm', 'pass.realm']));
+    expect(r[0].text).toContain('não vale no Regulamento de hoje');
   });
 });

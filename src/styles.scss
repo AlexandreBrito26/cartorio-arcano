@@ -663,13 +663,46 @@ kbd {
   color: var(--gold);
 }
 
+.compare {
+  flex: 0 0 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  font-size: 0.95rem;
+
+  li {
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: #ffffff0d;
+  }
+}
+
+.compare-hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.compare-ok {
+  color: #8fe0a8;
+}
+
+.compare-bad {
+  color: #ff9aa6;
+  font-weight: 600;
+}
+
 .calendar {
   margin: 0 0 10px;
   font-size: 0.85rem;
 
   summary {
     cursor: pointer;
-    color: var(--muted);
+    color: #7a6238;
+    font-weight: 600;
   }
 
   ol {
@@ -680,7 +713,7 @@ kbd {
 
   p {
     margin: 4px 0 0;
-    color: var(--muted);
+    color: #5a4a2a;
   }
 }
 

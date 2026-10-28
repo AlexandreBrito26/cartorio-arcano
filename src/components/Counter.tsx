@@ -1,6 +1,7 @@
 import { useEffect, useState, type Dispatch } from 'react';
 import { playResult } from '../game/audio';
 import { GAME_YEAR, formatDateFull } from '../game/constants';
+import { compareMarks } from '../game/compare';
 import { DENY_LABEL } from '../game/rules';
 import type { Action, GameState } from '../game/state';
 import type { Applicant, DayRules, ViolationCode } from '../game/types';
@@ -27,12 +28,26 @@ function Desk({ applicant, rules }: { applicant: Applicant; rules: DayRules }) {
   const { identity, pass, seal } = applicant;
   const props = { marks, onToggle };
   const has = (code: ViolationCode) => rules.active.includes(code);
+  const checks = compareMarks(applicant, rules, marks);
 
   return (
     <div className="docs">
       <p className="desk-today">
         Hoje: <strong>{formatDateFull(rules.today)}</strong>, ano {GAME_YEAR}
       </p>
+      <ul className="compare" role="status" aria-live="polite" aria-label="Conferência dos campos grifados">
+        {checks.length === 0 ? (
+          <li className="compare-hint">
+            Grife dois campos iguais de papéis diferentes (nome, reino, espécie) ou uma validade para conferir.
+          </li>
+        ) : (
+          checks.map((c) => (
+            <li key={c.id} className={c.ok ? 'compare-ok' : 'compare-bad'}>
+              <span aria-hidden="true">{c.ok ? '✓' : '✗'}</span> {c.text}
+            </li>
+          ))
+        )}
+      </ul>
       {identity && <IdentityDoc card={identity} {...props} />}
       {pass && <PassDoc pass={pass} {...props} />}
       {seal && <SealDoc seal={seal} {...props} />}
