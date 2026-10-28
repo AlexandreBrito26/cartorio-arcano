@@ -8,7 +8,7 @@ import { SkinContext, SuitContext } from './components/SkinContext';
 import { SkinShop } from './components/SkinShop';
 import { Briefing, DayEnd, Ending, EventScreen, Title, UpgradeShop } from './components/Screens';
 import { isMuted, setMuted } from './game/audio';
-import { GAME_YEAR, MAX_DAY, formatDate } from './game/constants';
+import { GAME_YEAR, MAX_DAY, formatDateFull } from './game/constants';
 import { timeLimitFor } from './game/upgrades';
 import { CUTSCENES, type CutsceneId } from './game/cutscene';
 import { createInitialState, reducer } from './game/state';
@@ -119,7 +119,7 @@ export default function App() {
             <div>
               <dt>Hoje</dt>
               <dd>
-                {formatDate(state.rules.today)}, {GAME_YEAR}
+                {formatDateFull(state.rules.today)}, {GAME_YEAR}
               </dd>
             </div>
             <div>

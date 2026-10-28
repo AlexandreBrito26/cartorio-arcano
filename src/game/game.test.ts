@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isMuted, playResult, setMuted } from './audio';
-import { MAX_DAY, formatDate, getDayRules } from './constants';
+import { MAX_DAY, MONTH_NAMES, formatDate, formatDateFull, getDayRules } from './constants';
 import { buildApplicant, generateDay, mutateName } from './generator';
 import { createRng } from './rng';
 import { evaluate, judge } from './rules';
@@ -209,5 +209,17 @@ describe('lore', () => {
     expect(end.open).toBe(end.total);
     expect(isUnlocked(REALM_LORE['Reino das Cinzas'], 2)).toBe(false);
     expect(isUnlocked(REALM_LORE['Reino das Cinzas'], 3)).toBe(true);
+  });
+});
+
+describe('datas com número do mês', () => {
+  it('mostra a ordem do mês para comparar validade e "hoje"', () => {
+    expect(formatDateFull(100)).toBe('11 de Eclipse (4º mês)');
+    expect(formatDateFull(0)).toBe('1 de Névoa (1º mês)');
+    expect(formatDateFull(359)).toBe('30 de Veludo (12º mês)');
+    expect(MONTH_NAMES).toHaveLength(12);
+    // Uma data posterior sempre tem (mês, dia) maior, e o número do mês deixa isso à vista.
+    const month = (n: number) => Number(/\((\d+)º mês\)/.exec(formatDateFull(n))![1]);
+    for (let n = 0; n < 359; n++) expect(month(n + 1)).toBeGreaterThanOrEqual(month(n));
   });
 });

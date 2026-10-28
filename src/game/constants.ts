@@ -57,6 +57,18 @@ export function formatDate(n: number): string {
   return `${day} de ${MONTHS[month]}`;
 }
 
+/** Os doze meses, em ordem. Útil para mostrar o calendário ao jogador. */
+export const MONTH_NAMES: readonly string[] = MONTHS;
+
+/**
+ * Data com o número do mês, para comparar validade e "hoje" sem decorar o calendário inventado:
+ * "11 de Eclipse (4º mês)". A ordem dos meses é a de MONTH_NAMES.
+ */
+export function formatDateFull(n: number): string {
+  const month = Math.floor(n / 30) % 12;
+  return `${formatDate(n)} (${month + 1}º mês)`;
+}
+
 export const SPECIES: readonly Species[] = [
   'Humano', 'Elfo', 'Anão', 'Goblin', 'Fada', 'Draconato', 'Tritão', 'Golem', 'Espectro',
 ];

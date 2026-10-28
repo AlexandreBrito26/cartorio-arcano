@@ -1,4 +1,4 @@
-import { GAME_YEAR, formatDate } from '../game/constants';
+import { GAME_YEAR, formatDateFull } from '../game/constants';
 import type { GuildSeal, IdentityCard, SpeciesDoc, TravelPass } from '../game/types';
 
 interface Marks {
@@ -41,7 +41,7 @@ export function IdentityDoc({ card, ...m }: { card: IdentityCard } & Marks) {
       <Field id="id.species" label="Espécie" value={card.species} {...m} />
       <Field id="id.realm" label="Reino de origem" value={card.realm} {...m} />
       <Field id="id.birth" label="Nascimento (ano)" value={String(card.birthYear)} {...m} />
-      <Field id="id.expiry" label="Validade" value={formatDate(card.expiry)} {...m} />
+      <Field id="id.expiry" label="Validade" value={formatDateFull(card.expiry)} {...m} />
       <footer>Ano corrente {GAME_YEAR}</footer>
     </article>
   );
@@ -57,7 +57,7 @@ export function PassDoc({ pass, ...m }: { pass: TravelPass } & Marks) {
       <Field id="pass.name" label="Portador" value={pass.name} {...m} />
       <Field id="pass.realm" label="Reino de partida" value={pass.realm} {...m} />
       <Field id="pass.purpose" label="Finalidade" value={pass.purpose} {...m} />
-      <Field id="pass.expiry" label="Validade" value={formatDate(pass.expiry)} {...m} />
+      <Field id="pass.expiry" label="Validade" value={formatDateFull(pass.expiry)} {...m} />
     </article>
   );
 }

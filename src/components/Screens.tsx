@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type Dispatch } from 'react';
 import { PixelSprite } from './PixelSprite';
-import { MAX_DAY, formatDate } from '../game/constants';
+import { MAX_DAY, formatDateFull } from '../game/constants';
 import { eventForDay } from '../game/events';
 import { Ambience } from './Ambience';
 import { CanvasLogo } from './CanvasLogo';
@@ -50,7 +50,7 @@ export function Briefing({ state, dispatch }: Props) {
       {/* Primeiro dia: brasas do PixiJS flutuam atrás da abertura do cartório. */}
       {rules.day === 1 && <Ambience mood="embers" count={30} className="ambience-page ambience-briefing" />}
       <p className="eyebrow">
-        {rules.day > MAX_DAY ? `Plantão, dia ${rules.day}` : `Dia ${rules.day} de ${MAX_DAY}`} · {formatDate(rules.today)}
+        {rules.day > MAX_DAY ? `Plantão, dia ${rules.day}` : `Dia ${rules.day} de ${MAX_DAY}`} · {formatDateFull(rules.today)}
       </p>
       <h1>{rules.headline}</h1>
       <p className="lead">{rules.story}</p>

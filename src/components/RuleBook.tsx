@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { GAME_YEAR, LATE_PENALTY, GUILDS, GUILD_SYMBOLS, formatDate } from '../game/constants';
+import { GAME_YEAR, LATE_PENALTY, GUILDS, GUILD_SYMBOLS, MONTH_NAMES, formatDateFull } from '../game/constants';
 import { ruleText } from '../game/rules';
 import { expensesFor, fineAmount, rewardApprove, rewardDeny, rewardDenyPartial, type Upgrades } from '../game/upgrades';
 import type { DayRules } from '../game/types';
@@ -20,8 +20,17 @@ export function RuleBook({ rules, upgrades }: { rules: DayRules; upgrades?: Upgr
     <aside className="rulebook" aria-label="Regulamento do cartório">
       <h2>Regulamento</h2>
       <p className="rulebook-date">
-        Hoje: <strong>{formatDate(rules.today)}</strong>, ano {GAME_YEAR}
+        Hoje: <strong>{formatDateFull(rules.today)}</strong>, ano {GAME_YEAR}
       </p>
+      <details className="calendar">
+        <summary>Calendário (ordem dos meses)</summary>
+        <ol>
+          {MONTH_NAMES.map((m) => (
+            <li key={m}>{m}</li>
+          ))}
+        </ol>
+        <p>Cada mês tem 30 dias. Vence antes de hoje = vencido; hoje ou depois = válido.</p>
+      </details>
 
       <div className="tabs" role="tablist">
         {TABS.map((t) => (

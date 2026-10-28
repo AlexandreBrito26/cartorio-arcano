@@ -1,4 +1,4 @@
-import { BANNED_ITEMS, ENTRY_FEE, GAME_YEAR, GUILD_SYMBOLS, formatDate } from './constants';
+import { BANNED_ITEMS, ENTRY_FEE, GAME_YEAR, GUILD_SYMBOLS, formatDateFull } from './constants';
 import { fineAmount, rewardApprove, rewardDeny, rewardDenyPartial, type Upgrades } from './upgrades';
 import type { Applicant, DayRules, Decision, DecisionResult, Violation, ViolationCode } from './types';
 
@@ -66,13 +66,13 @@ export function evaluate(applicant: Applicant, rules: DayRules): Violation[] {
     if (identity && identity.expiry < rules.today) {
       out.push({
         code: 'DOC_VENCIDO',
-        detail: `A Carta venceu em ${formatDate(identity.expiry)} (hoje é ${formatDate(rules.today)}).`,
+        detail: `A Carta venceu em ${formatDateFull(identity.expiry)} (hoje é ${formatDateFull(rules.today)}).`,
       });
     }
     if (pass && pass.expiry < rules.today) {
       out.push({
         code: 'DOC_VENCIDO',
-        detail: `O Passe venceu em ${formatDate(pass.expiry)} (hoje é ${formatDate(rules.today)}).`,
+        detail: `O Passe venceu em ${formatDateFull(pass.expiry)} (hoje é ${formatDateFull(rules.today)}).`,
       });
     }
   }

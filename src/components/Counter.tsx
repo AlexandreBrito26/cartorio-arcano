@@ -1,5 +1,6 @@
 import { useEffect, useState, type Dispatch } from 'react';
 import { playResult } from '../game/audio';
+import { GAME_YEAR, formatDateFull } from '../game/constants';
 import { DENY_LABEL } from '../game/rules';
 import type { Action, GameState } from '../game/state';
 import type { Applicant, DayRules, ViolationCode } from '../game/types';
@@ -29,6 +30,9 @@ function Desk({ applicant, rules }: { applicant: Applicant; rules: DayRules }) {
 
   return (
     <div className="docs">
+      <p className="desk-today">
+        Hoje: <strong>{formatDateFull(rules.today)}</strong>, ano {GAME_YEAR}
+      </p>
       {identity && <IdentityDoc card={identity} {...props} />}
       {pass && <PassDoc pass={pass} {...props} />}
       {seal && <SealDoc seal={seal} {...props} />}
