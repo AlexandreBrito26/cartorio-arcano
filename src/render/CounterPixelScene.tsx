@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react';
 import type { Texture as PixiTexture, TickerCallback } from 'pixi.js';
+import type { Skin } from '../game/skins';
+import type { Weather } from '../game/weather';
 import { flameScale, lampAngle, lightningAlpha, stampFrame } from './counterAnim';
 import { useStage } from './PixiStage';
 import { reduced } from './motion';
+import { buildSky } from './sky';
 
 const W = 320;
 const H = 80;
@@ -16,16 +19,20 @@ interface Props {
   layer: CounterLayer;
   /** Decisão tomada: o carimbo bate na mesa no mesmo instante do som. */
   reaction?: Reaction;
+  /** Clima do dia: céu, névoa e relâmpago. */
+  weather: Weather;
+  /** Tinta da arte e cor da placa (a skin em uso). */
+  skin: Skin;
 }
 
 /**
  * Balcão em pixel art, em duas camadas do PixiStage que envolvem o viajante:
- * `back` (céu, torre, portão e névoa) e `front` (divisória de latão, lampião,
+ * `back` (céu do dia, torre, portão e névoa) e `front` (divisória de latão, lampião,
  * vela, sineta e carimbo animado, além do relâmpago).
  * A escala é o menor inteiro que cobre o palco, então não sobram faixas.
  * Não cria canvas: só adiciona e remove o seu Container na camada.
  */
-export function CounterPixelScene({ layer, reaction }: Props) {
+export function CounterPixelScene({ layer, reaction, weather, skin }: Props) {
   const { stage } = useStage();
   const reactionRef = useRef<Reaction>(reaction);
   reactionRef.current = reaction;
@@ -70,12 +77,17 @@ export function CounterPixelScene({ layer, reaction }: Props) {
         ]);
         if (cancelled) return;
 
-        scene.addChild(new Sprite(bgTex));
+        // O céu do dia vem primeiro: a arte (montanhas, torre, portão) tem as linhas 0 a 39 vazias por cima dele.
+        const sky = buildSky(pixi, weather, scene);
+        const art = new Sprite(bgTex);
+        art.tint = skin.scene.artTint;
+        scene.addChild(art);
 
-        // Névoa rente ao chão, com alfa, passando devagar.
+        // Névoa rente ao chão, com alfa, passando devagar; a densidade muda com o clima.
         const mists = [
-          { y: 64, speed: 5, alpha: 0.16, offset: 0 },
-          { y: 72, speed: 3, alpha: 0.12, offset: 110 },
+          { y: 64, speed: 5, alpha: Math.min(0.5, 0.16 * weather.mist), offset: 0 },
+          { y: 72, speed: 3, alpha: Math.min(0.4, 0.12 * weather.mist), offset: 110 },
+          ...(weather.mist > 1.5 ? [{ y: 52, speed: 4, alpha: Math.min(0.3, 0.1 * weather.mist), offset: 220 }] : []),
         ].map((m) => {
           const s = new Sprite(mistTex);
           s.anchor.set(0.5);
@@ -105,6 +117,7 @@ export function CounterPixelScene({ layer, reaction }: Props) {
             m.s.position.x = ((sec * m.speed + m.offset) % span) - 100;
           }
           window_.alpha = 0.7 + 0.3 * Math.sin(sec * 2.1);
+          sky.update(sec);
         });
       } else {
         const [fgTex, lampTex, stampSheet] = await Promise.all([
@@ -114,13 +127,15 @@ export function CounterPixelScene({ layer, reaction }: Props) {
         ]);
         if (cancelled) return;
 
-        scene.addChild(new Sprite(fgTex));
+        const frame = new Sprite(fgTex);
+        frame.tint = skin.scene.frontTint;
+        scene.addChild(frame);
 
         // Placa do guichê, em Cinzel.
         const family = getComputedStyle(document.documentElement).getPropertyValue('--font-title').trim() || 'serif';
         const plaque = new Text({
           text: 'GUICHÊ DAS BRUMAS',
-          style: { fontFamily: family, fontSize: 6, fill: 0xe0b44c, letterSpacing: 1 },
+          style: { fontFamily: family, fontSize: 6, fill: skin.scene.plaque, letterSpacing: 1 },
         });
         plaque.resolution = 6; // texto nítido mesmo com a escala inteira do palco
         plaque.anchor.set(0.5);
@@ -180,7 +195,7 @@ export function CounterPixelScene({ layer, reaction }: Props) {
           const ms = decisionAt === null ? null : now - decisionAt;
           stamp.texture = frames[isStill ? 0 : stampFrame(ms)];
 
-          const a = isStill ? 0 : lightningAlpha(sec);
+          const a = isStill || !weather.lightningMs ? 0 : lightningAlpha(sec, weather.lightningMs);
           flash.alpha = a;
           bolt.alpha = a > 0.25 ? 1 : 0;
         });
@@ -194,7 +209,7 @@ export function CounterPixelScene({ layer, reaction }: Props) {
       offLayout();
       root.destroy({ children: true });
     };
-  }, [stage, layer]);
+  }, [stage, layer, weather, skin]);
 
   return null;
 }

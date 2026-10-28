@@ -5,14 +5,16 @@ import { describe, expect, it } from 'vitest';
 import { Counter } from './components/Counter';
 import { Cutscene } from './components/Cutscene';
 import { Logo } from './components/Logo';
+import { PixelSprite } from './components/PixelSprite';
 import { Portrait } from './components/Portrait';
-import { Briefing, DayEnd, Ending, EventScreen, Title } from './components/Screens';
+import { Briefing, DayEnd, Ending, EventScreen, Title, UpgradeShop } from './components/Screens';
 import { MAX_DAY } from './game/constants';
+import { UPGRADES } from './game/upgrades';
 import { CUTSCENES, CUTSCENE_SCHEDULE, INTRO_SCENES, STAMP_IMPACT_MS, replayableCutscenes } from './game/cutscene';
 import { SPECIES } from './game/constants';
 import { createInitialState, reducer, type GameState } from './game/state';
 import type { Look } from './game/types';
-import { SPECIES_SLUG } from './render/characterAnim';
+import { CHARACTER_LAYER_COUNT, OUTLINE_LAYER_INDEX, SPECIES_SLUG } from './render/characterAnim';
 
 const noop = () => {};
 
@@ -99,7 +101,7 @@ describe('logo e cutscene', () => {
     const base = createInitialState();
     expect(reducer(base, { type: 'NEW_GAME' }).phase).toBe('cutscene');
     expect(reducer(reducer(base, { type: 'NEW_GAME' }), { type: 'START_DAY', seed: 1 }).phase).toBe('cutscene');
-    const withSave = { ...base, save: { day: 3, coins: 20 } };
+    const withSave = { ...base, save: { day: 3, coins: 20, upgrades: {} } };
     expect(reducer(withSave, { type: 'CONTINUE' }).phase).toBe('briefing');
   });
 });
@@ -264,10 +266,14 @@ describe('arte e atlas em public/', () => {
         frames: { name: string }[];
       };
       expect(atlas.image).toBe(`/art/personagens/${slug}.png`);
-      // Portrait.tsx assume: contorno no índice 10, folha com 11 quadros de 64×72.
-      expect(atlas.frames.findIndex((f) => f.name === 'outline')).toBe(10);
-      expect(atlas.frames).toHaveLength(11);
-      expect(pngSize(png)).toEqual({ w: 11 * atlas.frameWidth, h: atlas.frameHeight });
+      // Portrait.tsx assume: contorno no índice 10, folha com CHARACTER_LAYER_COUNT quadros de 64×72.
+      expect(atlas.frames.findIndex((f) => f.name === 'outline')).toBe(OUTLINE_LAYER_INDEX);
+      expect(atlas.frames).toHaveLength(CHARACTER_LAYER_COUNT);
+      expect(pngSize(png)).toEqual({ w: CHARACTER_LAYER_COUNT * atlas.frameWidth, h: atlas.frameHeight });
+      // Fase 12: mãos, mangas, sombras e olhos existem em todas as espécies.
+      for (const name of ['eyewhite', 'shade', 'armL', 'armR', 'handL', 'handR', 'lineL', 'lineR']) {
+        expect(atlas.frames.map((f) => f.name), `${slug}: ${name}`).toContain(name);
+      }
       expect([atlas.frameWidth, atlas.frameHeight]).toEqual([64, 72]);
     }
   });
@@ -307,5 +313,74 @@ describe('sem restos do SVG no código', () => {
     }
     expect(css).not.toMatch(/\.portrait\b(?!-)/);
     expect(css).not.toMatch(/\.px(-|\s|,|\{)/);
+  });
+});
+
+describe('loja de melhorias', () => {
+  it('lista as melhorias, mostra o saldo e desabilita o que não dá para pagar', () => {
+    const base: GameState = { ...createInitialState(), phase: 'upgrades', day: 3, coins: 30, upgrades: { carimbo: 3 } };
+    const html = render(<UpgradeShop state={base} dispatch={noop} />);
+    expect(html).toContain('Melhorias do cartório');
+    expect(html).toContain('Carimbo de Prata');
+    expect(html).toContain('Nível máximo');
+    expect(html).toContain('Comprar · 20');
+    expect(html).toMatch(/disabled=""[^>]*>Comprar · 55/);
+  });
+
+  it('o fim de dia oferece a loja, exceto com o cartório falido', () => {
+    const ok: GameState = { ...createInitialState(), phase: 'dayEnd', day: 1, coins: 20 };
+    expect(render(<DayEnd state={ok} dispatch={noop} />)).toContain('Melhorias do cartório');
+    const broke: GameState = { ...ok, coins: -2 };
+    expect(render(<DayEnd state={broke} dispatch={noop} />)).not.toContain('Melhorias do cartório');
+  });
+});
+
+describe('arte animada da oficina', () => {
+  /** Largura e altura lidas do cabeçalho IHDR do PNG. */
+  const pngSize = (path: string) => {
+    const b = readFileSync(path);
+    return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
+  };
+
+  const SHEETS: [string, number, number, number][] = [
+    ['upg-carimbo.png', 4, 24, 24],
+    ['upg-ampulheta.png', 4, 24, 24],
+    ['upg-seguro.png', 4, 24, 24],
+    ['upg-cofre.png', 4, 24, 24],
+    ['upg-balcao.png', 4, 24, 24],
+    ['icon-moeda-spin.png', 6, 16, 16],
+    ['fx-burst.png', 6, 32, 32],
+    ['shop-banner.png', 4, 160, 48],
+  ];
+
+  it.each(SHEETS)('%s tem a folha no tamanho certo', (file, frames, w, h) => {
+    const path = `public/art/ui/${file}`;
+    expect(existsSync(path)).toBe(true);
+    expect(pngSize(path)).toEqual({ w: w * frames, h });
+  });
+
+  it('toda melhoria da loja tem a sua folha de ícone', () => {
+    for (const u of UPGRADES) expect(existsSync(`public/art/ui/upg-${u.id}.png`), u.id).toBe(true);
+  });
+
+  it('PixelSprite expõe o ciclo pelas variáveis CSS e é decorativo sem label', () => {
+    const html = render(<PixelSprite src="/art/ui/upg-cofre.png" frames={4} w={24} h={24} scale={3} fps={4} />);
+    expect(html).toContain('--frames:4');
+    expect(html).toContain('--fw:72px');
+    expect(html).toContain('--dur:1s');
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).not.toContain('<svg');
+    const once = render(<PixelSprite src="/art/ui/fx-burst.png" frames={6} w={32} h={32} once label="faísca" />);
+    expect(once).toContain('--iter:1');
+    expect(once).toContain('aria-label="faísca"');
+  });
+
+  it('a loja mostra banner e um ícone animado por melhoria, sem emoji nem SVG', () => {
+    const s: GameState = { ...createInitialState(), phase: 'upgrades', day: 2, coins: 40, upgrades: {} };
+    const html = render(<UpgradeShop state={s} dispatch={noop} />);
+    expect(html).toContain('shop-banner');
+    for (const u of UPGRADES) expect(html).toContain(`/art/ui/upg-${u.id}.png`);
+    expect(html).not.toContain('<svg');
+    expect(html).not.toMatch(/🪙|⏳|🛡|🕯|🪑/u);
   });
 });

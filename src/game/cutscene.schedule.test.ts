@@ -24,7 +24,7 @@ describe('cena antes de um dia da campanha', () => {
   });
 
   it('continuar um save no dia agendado mostra a cena antes do briefing', () => {
-    const withSave = { ...createInitialState(), save: { day: 3, coins: 20 } };
+    const withSave = { ...createInitialState(), save: { day: 3, coins: 20, upgrades: {} } };
     const s = reducer(withSave, { type: 'CONTINUE' });
     expect(s.phase).toBe('cutscene');
     expect(reducer(s, { type: 'CUTSCENE_DONE' }).phase).toBe('briefing');

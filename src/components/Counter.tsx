@@ -75,7 +75,7 @@ export function Counter({ state, dispatch }: Props) {
   if (!applicant) {
     return (
       <main className="counter">
-        <CounterScene emptyText="Ninguém no balcão. Os próximos viajantes ainda estão a caminho." />
+        <CounterScene day={state.day} emptyText="Ninguém no balcão. Os próximos viajantes ainda estão a caminho." />
       </main>
     );
   }
@@ -89,7 +89,7 @@ export function Counter({ state, dispatch }: Props) {
 
   return (
     <main className="counter">
-      <CounterScene applicant={applicant} reaction={result?.decision.kind} />
+      <CounterScene day={state.day} applicant={applicant} reaction={result?.decision.kind} />
 
       <section className="desk" aria-label="Mesa de documentos">
         <h2 className="visually-hidden">Documentos na mesa</h2>
@@ -101,7 +101,7 @@ export function Counter({ state, dispatch }: Props) {
         )}
       </section>
 
-      <RuleBook rules={state.rules} />
+      <RuleBook rules={state.rules} upgrades={state.upgrades} />
 
       <footer className="decision-bar">
         {playing && (

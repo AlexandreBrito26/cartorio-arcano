@@ -61,3 +61,44 @@ export const SPLASH_FRAMES: ReadonlyArray<ReadonlyArray<readonly [number, number
   [[3, 48, 1], [9, 56, 1], [61, 48, 1]],
   [[2, 44, 1], [11, 52, 1], [62, 46, 1]],
 ];
+
+/** Quantas camadas tem a folha de cada espécie (ordem em tools/gen_characters.py; o contorno é a 11ª). */
+export const CHARACTER_LAYER_COUNT = 19;
+export const OUTLINE_LAYER_INDEX = 10;
+
+/**
+ * Mãos (Fase 12). Duas mãos pousadas no balcão, cada uma com a sua manga.
+ * Ocioso: de tempos em tempos uma delas bate os dedos na madeira (lado direito a cada 7 s, esquerdo a cada 11 s).
+ * Aprovar: a mão direita sobe e acena; Negar: as duas sobem e se abrem, palmas para fora.
+ */
+export const HAND_TAP_Y = [0, -2, 0, -2, 0, -2, 0];
+export const HAND_TAP_PERIOD_MS: Record<'L' | 'R', number> = { L: 11000, R: 7000 };
+export const HAND_REACTION_MS = 700;
+export const HAND_APPROVE_R_Y = [0, -2, -4, -4, -4, -2, 0];
+export const HAND_APPROVE_R_X = [0, 0, 1, -1, 1, 0, 0];
+export const HAND_APPROVE_L_Y = [0, 0, -1, -1, -1, 0, 0];
+export const HAND_DENY_Y = [0, -2, -3, -3, -3, -2, 0];
+/** Quanto cada mão se afasta do centro (a esquerda vai para -x, a direita para +x). */
+export const HAND_DENY_SPREAD_X = [0, 1, 2, 3, 3, 2, 0];
+
+export type HandSide = 'L' | 'R';
+
+/** Deslocamento da mão em pixels de arte. `sinceMs` é o tempo desde a decisão (negativo = nenhuma). */
+export function handOffsets(
+  side: HandSide,
+  nowMs: number,
+  reaction: 'approve' | 'deny' | undefined,
+  sinceMs: number,
+): { dx: number; dy: number } {
+  if (reaction && sinceMs >= 0 && sinceMs < HAND_REACTION_MS) {
+    const i = frameIndex(sinceMs, 10, HAND_DENY_Y.length, false);
+    if (reaction === 'approve') {
+      return side === 'R' ? { dx: HAND_APPROVE_R_X[i], dy: HAND_APPROVE_R_Y[i] } : { dx: 0, dy: HAND_APPROVE_L_Y[i] };
+    }
+    const out = HAND_DENY_SPREAD_X[i];
+    return { dx: side === 'L' ? -out : out, dy: HAND_DENY_Y[i] };
+  }
+  const t = nowMs % HAND_TAP_PERIOD_MS[side];
+  if (t >= 0 && t < HAND_TAP_Y.length * 100) return { dx: 0, dy: HAND_TAP_Y[Math.floor(t / 100)] };
+  return { dx: 0, dy: 0 };
+}

@@ -48,6 +48,20 @@ Os sons (carimbo, moedinha, zumbido de infração) são sintetizados com Web Aud
 - **Título**: `titleCard` na definição da cena (`Ano 417` na abertura). Segue sozinho em ~4 s; clique, tecla ou **Continuar** pulam.
 - **Trilha** (`game/music.ts`): pad de 4 vozes, vento, sinos/plucks que caminham pela escala, brasas e um pulso de coração, tudo sintetizado. Cada cena tem um perfil (tônica, escala, timbre, densidade); a troca de cena desliza os acordes, sem cortes. No impacto do carimbo a música resolve em ré maior. Some com fade ao sair da cena, para ao silenciar o som e volta ao reativá-lo. Com movimento reduzido, as animações de câmera e título ficam estáticas.
 
+### Melhorias do cartório (upgrades)
+
+No **Fim do dia**, o botão **Melhorias do cartório** abre a oficina, onde as moedas viram upgrades permanentes (valem nos dias seguintes e entram no save). O saldo nunca fica negativo por causa de uma compra, e as despesas do dia seguinte saem do que sobrar.
+
+| Melhoria | Efeito por nível | Preços |
+| --- | --- | --- |
+| Carimbo de Prata | +1 moeda por decisão certa | 25 / 45 / 70 |
+| Ampulheta Encantada | +2 s por viajante no relógio | 20 / 35 / 55 |
+| Seguro do Cartório | −1 moeda em cada multa (mínimo 1) | 30 / 50 |
+| Despensa Econômica | −2 moedas nas despesas diárias | 25 / 40 / 60 |
+| Balcão Ordenado | +1 s entre as chegadas de viajantes | 20 / 40 |
+
+Tudo está em `game/upgrades.ts` (definições, preços e funções de efeito). Para criar uma melhoria nova: adicione o id em `UpgradeId`, uma entrada em `UPGRADES` e use a função de efeito no ponto da regra que ela altera. O livro de regras (aba Pagamento) já mostra os valores com as melhorias aplicadas. Saves antigos, sem o campo `upgrades`, carregam como "nenhuma melhoria".
+
 ## Estrutura
 
 ```
@@ -58,13 +72,14 @@ src/
     rules.ts        evaluate() (o que está errado nos documentos) e judge() (pontuação)
     generator.ts    gera a fila do dia injetando falhas controladas
     state.ts        reducer do jogo (title, briefing, playing, result, dayEnd, ending)
-    storage.ts      save no localStorage
+    storage.ts      save no localStorage (dia, moedas e melhorias)
+    upgrades.ts     melhorias do cartório: definições, preços e efeitos
     audio.ts        efeitos sonoros (Web Audio) e preferência de mudo
     rng.ts          gerador pseudoaleatório com seed
     game.test.ts    testes
   components/       Documents, RuleBook, Counter, CounterScene, Screens, Cutscene, Diary, Ambience (canvas 2D),
                     Logo e Portrait (reservas em PNG, sem WebGL), CanvasLogo (canvas 2D)
-  render/           pixel art em PixiJS: PixiStage (canvas único do balcão), PixelPortrait, CounterPixelScene, RainLayer, PixelCutsceneArt, assets, atlas, paleta, escala e câmera
+  render/           pixel art em PixiJS: PixiStage (canvas único do balcão), PixelPortrait, CounterPixelScene, sky (céu do dia), SkinShop (skins e trajes), SuitSamples, WeatherLayer (partículas do clima), PixelCutsceneArt, assets, atlas, paleta, escala e câmera
   game/cutscene.ts  motor de cenas: tipos (câmera, transição, falante, sfx), registro CUTSCENES e agenda por dia (CUTSCENE_SCHEDULE)
   App.tsx, styles.scss, main.tsx
 tools/              geradores da arte (Python + Pillow)
@@ -86,9 +101,11 @@ python3 tools/gen_cutscene_art.py   # abertura: 5 cenas x 3 camadas + névoa e c
 python3 tools/gen_characters.py     # 9 espécies: PNG + atlas JSON                    -> public/art/personagens/
 python3 tools/gen_counter_art.py    # balcão: fundo, frente, lampião e carimbo        -> public/art/balcao/
 python3 tools/gen_ui_art.py         # selo da logo e ícones do HUD                    -> public/art/ui/
+python3 tools/gen_upgrade_art.py    # oficina de melhorias: ícones, moeda e faísca animados -> public/art/ui/
+python3 tools/preview_characters.py # prévia dos personagens (mãos, sombras, olhos) em PNG
 ```
 
-Rodar os quatro de novo reproduz os arquivos atuais byte a byte. Depois de regenerar, rode `npm test`: os testes conferem que cada espécie tem PNG e JSON, que a folha tem 11 quadros de 64×72 e que o contorno (usado como retrato sem WebGL) está no índice 10.
+Rodar os quatro de novo reproduz os arquivos atuais byte a byte. Depois de regenerar, rode `npm test`: os testes conferem que cada espécie tem PNG e JSON, que a folha tem 19 camadas de 64×72 (as 8 últimas são olhos, sombras, mangas e mãos) e que o contorno (usado como retrato sem WebGL) está no índice 10.
 
 **Atlas.** Um atlas é um PNG + um JSON com `image`, `frameWidth`, `frameHeight`, `frames` (nome, x, y, w, h) e `animations` (nome para lista de quadros), carregado por `loadAtlas` em `src/render/atlas.ts`. Só `gen_characters.py` escreve JSON; as demais cenas e o balcão são PNGs carregados direto. A runa da mesa usa `public/sprites/smoke-rune.*`, que **não** é gerada por script.
 

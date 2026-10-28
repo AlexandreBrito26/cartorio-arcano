@@ -34,4 +34,9 @@ describe('relâmpago', () => {
     expect(lightningAlpha(15.05)).toBeGreaterThan(0);
     expect(lightningAlpha(8)).toBe(0);
   });
+
+  it('o período é ajustável (a tempestade pisca mais vezes)', () => {
+    expect(lightningAlpha(9.25, 5200)).toBeGreaterThan(0);
+    expect(lightningAlpha(9.25)).toBe(0);
+  });
 });

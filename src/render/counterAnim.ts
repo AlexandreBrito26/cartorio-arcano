@@ -20,10 +20,10 @@ export function stampFrame(msSinceDecision: number | null): number {
   return 0;
 }
 
-/** Relâmpago: começa aos 4 s e repete a cada 11 s, com dois pulsos de brilho. */
-export function lightningAlpha(seconds: number): number {
+/** Relâmpago: começa aos 4 s e repete a cada `periodMs` (11 s por padrão), com dois pulsos de brilho. */
+export function lightningAlpha(seconds: number, periodMs = 11000): number {
   if (seconds < 4) return 0;
-  const t = (seconds - 4) * 1000 % 11000;
+  const t = (seconds - 4) * 1000 % periodMs;
   if (t < 150) return 0.35;
   if (t >= 220 && t < 300) return 0.2;
   return 0;

@@ -1,14 +1,5 @@
-import {
-  BANNED_ITEMS,
-  ENTRY_FEE,
-  FINE,
-  GAME_YEAR,
-  GUILD_SYMBOLS,
-  REWARD_APPROVE,
-  REWARD_DENY,
-  REWARD_DENY_PARTIAL,
-  formatDate,
-} from './constants';
+import { BANNED_ITEMS, ENTRY_FEE, GAME_YEAR, GUILD_SYMBOLS, formatDate } from './constants';
+import { fineAmount, rewardApprove, rewardDeny, rewardDenyPartial, type Upgrades } from './upgrades';
 import type { Applicant, DayRules, Decision, DecisionResult, Violation, ViolationCode } from './types';
 
 export const DENY_LABEL: Record<ViolationCode, string> = {
@@ -149,7 +140,8 @@ export function evaluate(applicant: Applicant, rules: DayRules): Violation[] {
   return out;
 }
 
-export function judge(violations: Violation[], decision: Decision): DecisionResult {
+export function judge(violations: Violation[], decision: Decision, ups?: Upgrades): DecisionResult {
+  const fine = fineAmount(ups);
   const clean = violations.length === 0;
 
   if (decision.kind === 'approve') {
@@ -158,14 +150,14 @@ export function judge(violations: Violation[], decision: Decision): DecisionResu
           decision,
           violations,
           verdict: 'perfect',
-          delta: REWARD_APPROVE,
+          delta: rewardApprove(ups),
           headline: 'Carimbo certo! Os documentos estavam em ordem.',
         }
       : {
           decision,
           violations,
           verdict: 'wrong',
-          delta: -FINE,
+          delta: -fine,
           headline: 'Infração! Um viajante irregular passou pelo balcão.',
         };
   }
@@ -175,7 +167,7 @@ export function judge(violations: Violation[], decision: Decision): DecisionResu
       decision,
       violations,
       verdict: 'wrong',
-      delta: -FINE,
+      delta: -fine,
       headline: 'Infração! Você barrou um viajante em ordem.',
     };
   }
@@ -186,14 +178,14 @@ export function judge(violations: Violation[], decision: Decision): DecisionResu
         decision,
         violations,
         verdict: 'perfect',
-        delta: REWARD_DENY,
+        delta: rewardDeny(ups),
         headline: 'Negado pelo motivo certo!',
       }
     : {
         decision,
         violations,
         verdict: 'partial',
-        delta: REWARD_DENY_PARTIAL,
+        delta: rewardDenyPartial(ups),
         headline: 'Negado, mas o motivo registrado estava errado.',
       };
 }

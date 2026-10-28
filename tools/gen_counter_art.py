@@ -2,7 +2,8 @@
 Gera a arte pixel do balcão (Fase 4). Reproduzível: `python3 tools/gen_counter_art.py`.
 
 Base 320×80 px (mesma proporção 4:1 do palco, 1200×300 do SVG antigo, já removido; 1 px de arte = 3,75 unidades).
-- counter-back.png:  céu, montanhas, torre, portão e chão, atrás do viajante.
+- counter-back.png:  montanhas, torre, portão e chão, atrás do viajante. O céu (linhas 0 a 39) fica
+                     transparente: ele é desenhado pelo Pixi, por dia (src/game/weather.ts).
 - counter-front.png: pilares, grade de latão, viga, tampo e objetos fixos, na frente do viajante.
 - counter-lamp.png:  lampião pendurado (14×32), com o ponto de suspensão no topo (x=7, y=0).
 - counter-stamp.png: folha de 4 quadros 16×18 do carimbo: 0 repouso, 1 caindo, 2 impacto, 3 volta.
@@ -31,15 +32,8 @@ def blank(w=W, h=H):
 
 def back():
     im = blank(); d = ImageDraw.Draw(im)
-    # céu em faixas, do escuro ao horizonte
-    bands = ['mare-0', 'noite-0', 'noite-3', 'noite-4', 'luz-fria-0']
-    step = 40 / len(bands)
-    for i, cid in enumerate(bands):
-        d.rectangle([0, int(i * step), W, int((i + 1) * step) - 1], fill=col(cid))
+    # o céu (faixas e nuvens) não é mais pintado aqui: cada dia tem o seu, desenhado pelo Pixi
     d.rectangle([0, 40, W, H], fill=col('mare-0'))
-    # nuvens pesadas, rente ao topo
-    for x0, x1, y in ((0, 90, 2), (100, 200, 4), (210, 320, 1)):
-        d.ellipse([x0, y - 4, x1, y + 6], fill=col('noite-0'))
     # montanhas distantes
     d.polygon([(0, 40), (20, 31), (40, 38), (65, 28), (90, 36), (110, 30), (140, 39), (165, 34),
                (190, 41), (230, 31), (260, 40), (290, 33), (320, 38), (320, 62), (0, 62)], fill=col('noite-0'))

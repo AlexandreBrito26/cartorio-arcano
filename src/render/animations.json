@@ -236,6 +236,32 @@
           "status": "integrado"
         }
       ]
+    },
+    "personagem-maos": {
+      "tamanho": "64x72",
+      "animacoes": [
+        {
+          "nome": "bate-dedos",
+          "frames": 7,
+          "fps": 10,
+          "loop": true,
+          "status": "integrado"
+        },
+        {
+          "nome": "acena",
+          "frames": 7,
+          "fps": 10,
+          "loop": false,
+          "status": "integrado"
+        },
+        {
+          "nome": "abre-maos",
+          "frames": 7,
+          "fps": 10,
+          "loop": false,
+          "status": "integrado"
+        }
+      ]
     }
   }
 }

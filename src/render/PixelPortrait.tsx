@@ -1,6 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { Graphics as PixiGraphics, Sprite as PixiSprite, Texture, TickerCallback } from 'pixi.js';
 import type { Look } from '../game/types';
+import { dressLook, hexToRgb } from '../game/suits';
+import { useSuit } from '../components/SkinContext';
 import { paletteInt } from './palette';
 import { Portrait } from '../components/Portrait';
 import { useStage } from './PixiStage';
@@ -18,6 +20,7 @@ import {
   SPLASH_FRAMES,
   WING_SCALE_X,
   frameIndex,
+  handOffsets,
   isBlinking,
 } from './characterAnim';
 
@@ -39,8 +42,11 @@ interface Props {
  * Reproduz o CSS antigo do `.st-traveler`: posição, brilho/saturação e a entrada `emerge`.
  * Sem WebGL, cai na silhueta em PNG (`Portrait`).
  */
-export function PixelPortrait({ look, reaction }: Props) {
+export function PixelPortrait({ look: baseLook, reaction }: Props) {
   const { stage, failed } = useStage();
+  // O traje em uso troca só as cores do viajante (e a cor do halo); o resto da arte é o mesmo.
+  const suit = useSuit();
+  const look = useMemo(() => dressLook(baseLook, suit), [baseLook, suit]);
   const reactionRef = useRef<Reaction>(reaction);
   reactionRef.current = reaction;
 
@@ -66,13 +72,14 @@ export function PixelPortrait({ look, reaction }: Props) {
       if (!reduced()) rig.alpha = 0; // começa invisível: a entrada (emerge) o revela
 
       // Brilho azulado em volta (era o drop-shadow do CSS): gradiente radial pré-desenhado.
+      const haloRgb = hexToRgb(suit.halo);
       const gl = document.createElement('canvas');
       gl.width = gl.height = 128;
       const gctx = gl.getContext('2d');
       if (gctx) {
         const g = gctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-        g.addColorStop(0, 'rgba(125,160,255,0.26)');
-        g.addColorStop(1, 'rgba(125,160,255,0)');
+        g.addColorStop(0, `rgba(${haloRgb},0.26)`);
+        g.addColorStop(1, `rgba(${haloRgb},0)`);
         gctx.fillStyle = g;
         gctx.fillRect(0, 0, 128, 128);
       }
@@ -118,14 +125,28 @@ export function PixelPortrait({ look, reaction }: Props) {
       lid.visible = false;
       const details = mk('details', undefined, 1);
       const outline = mk('outline');
-      body.addChild(cloak, skin);
+      const shade = mk('shade'); // fica atrás do cabelo, para a franja não ser pintada por cima
+      const eyewhite = mk('eyewhite'); // por cima da íris, por baixo da pálpebra
+      body.addChild(cloak, skin, shade);
 
       if (!noHair) {
         const hairName = look.hairStyle === 2 ? 'hair2' : look.hairStyle === 1 ? 'hair1' : 'hair0';
         body.addChild(mk(hairName, look.hair));
         if (look.beard) body.addChild(mk('beard', look.hair));
       }
-      body.addChild(eyes, lid, details, outline);
+      body.addChild(eyes, eyewhite, lid, details, outline);
+
+      // Mãos e mangas: dois braços independentes, pousados no balcão (animação em handOffsets).
+      const mkArm = (side: 'L' | 'R') => {
+        const c = new Container();
+        const arm = mk(`arm${side}`, look.cloak, isSpectre ? 0.72 : 1);
+        const hand = mk(`hand${side}`, look.skin, isSpectre ? 0.72 : 1);
+        c.addChild(arm, hand, mk(`line${side}`));
+        return { c, arm, hand };
+      };
+      const armL = mkArm('L');
+      const armR = mkArm('R');
+      root.addChild(armL.c, armR.c);
 
       // Efeitos próprios: fumaça do Draconato e respingo do Tritão, desenhados por quadro.
       let fx: PixiGraphics | undefined;
@@ -201,6 +222,19 @@ export function PixelPortrait({ look, reaction }: Props) {
         body.position.set(dx, dy);
         cloak.alpha = isSpectre ? alphaBody : 1;
         skin.alpha = isSpectre ? alphaBody : 1;
+        shade.alpha = isSpectre ? alphaBody : 1;
+
+        // Mãos: seguem o corpo em parte (a manga sai do ombro) e têm o próprio gesto.
+        const followY = Math.round(dy * (isSpectre ? 1 : 0.6));
+        const followX = Math.round(dx * 0.6);
+        for (const [side, arm] of [['L', armL], ['R', armR]] as const) {
+          const o = handOffsets(side, now, seenReaction, since);
+          arm.c.position.set(followX + o.dx, followY + o.dy);
+          if (isSpectre) {
+            arm.arm.alpha = alphaBody;
+            arm.hand.alpha = alphaBody;
+          }
+        }
 
         // Golem: rachaduras brilham.
         if (isGolem) details.alpha = GLOW_ALPHA[frameIndex(now, 3, GLOW_ALPHA.length, true)];
@@ -241,7 +275,7 @@ export function PixelPortrait({ look, reaction }: Props) {
     };
     // Um retrato por viajante: o Counter remonta com key={id}.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage, look.species, look.skin, look.hair, look.eyes, look.cloak, look.hairStyle, look.beard]);
+  }, [stage, look.species, look.skin, look.hair, look.eyes, look.cloak, look.hairStyle, look.beard, suit.halo]);
 
   if (failed) return <Portrait look={look} />;
   // O desenho está no canvas do balcão; aqui fica só o rótulo para leitores de tela.

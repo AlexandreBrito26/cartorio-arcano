@@ -1,17 +1,7 @@
 import { useState } from 'react';
-import {
-  FINE,
-  GAME_YEAR,
-  LATE_PENALTY,
-  GUILDS,
-  GUILD_SYMBOLS,
-  REWARD_APPROVE,
-  REWARD_DENY,
-  REWARD_DENY_PARTIAL,
-  dailyExpenses,
-  formatDate,
-} from '../game/constants';
+import { GAME_YEAR, LATE_PENALTY, GUILDS, GUILD_SYMBOLS, formatDate } from '../game/constants';
 import { ruleText } from '../game/rules';
+import { expensesFor, fineAmount, rewardApprove, rewardDeny, rewardDenyPartial, type Upgrades } from '../game/upgrades';
 import type { DayRules } from '../game/types';
 
 type Tab = 'rules' | 'seals' | 'pay';
@@ -22,7 +12,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'pay', label: 'Pagamento' },
 ];
 
-export function RuleBook({ rules }: { rules: DayRules }) {
+export function RuleBook({ rules, upgrades }: { rules: DayRules; upgrades?: Upgrades }) {
   const [tab, setTab] = useState<Tab>('rules');
   const sealsActive = rules.active.includes('SELO_AUSENTE');
 
@@ -78,12 +68,12 @@ export function RuleBook({ rules }: { rules: DayRules }) {
 
         {tab === 'pay' && (
           <ul className="pay-list">
-            <li>Aprovar corretamente: <strong>+{REWARD_APPROVE}</strong></li>
-            <li>Negar com o motivo certo: <strong>+{REWARD_DENY}</strong></li>
-            <li>Negar com o motivo errado: <strong>+{REWARD_DENY_PARTIAL}</strong></li>
-            <li>Infração (decisão errada): <strong>−{FINE}</strong></li>
+            <li>Aprovar corretamente: <strong>+{rewardApprove(upgrades)}</strong></li>
+            <li>Negar com o motivo certo: <strong>+{rewardDeny(upgrades)}</strong></li>
+            <li>Negar com o motivo errado: <strong>+{rewardDenyPartial(upgrades)}</strong></li>
+            <li>Infração (decisão errada): <strong>−{fineAmount(upgrades)}</strong></li>
             <li>Viajante sem atendimento quando o relógio zera: <strong>−{LATE_PENALTY}</strong></li>
-            <li>Despesas do fim do dia: <strong>−{dailyExpenses(rules.day)}</strong></li>
+            <li>Despesas do fim do dia: <strong>−{expensesFor(rules.day, upgrades)}</strong></li>
           </ul>
         )}
       </div>

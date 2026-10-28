@@ -1,13 +1,5 @@
-import {
-  ARRIVAL_EVERY,
-  LATE_PENALTY,
-  MAX_DAY,
-  START_COINS,
-  START_QUEUE,
-  dailyExpenses,
-  getDayRules,
-  timeLimit,
-} from './constants';
+import { LATE_PENALTY, MAX_DAY, START_COINS, START_QUEUE, getDayRules } from './constants';
+import { arrivalEvery, buyUpgrade, expensesFor, timeLimitFor, type UpgradeId, type Upgrades } from './upgrades';
 import { generateDay } from './generator';
 import { evaluate, judge } from './rules';
 import { loadSave, type SaveData } from './storage';
@@ -15,7 +7,16 @@ import { eventForDay } from './events';
 import { cutsceneForDay, type CutsceneId } from './cutscene';
 import type { Applicant, Decision, DecisionResult, DayRules } from './types';
 
-export type Phase = 'title' | 'cutscene' | 'briefing' | 'event' | 'playing' | 'result' | 'dayEnd' | 'ending';
+export type Phase =
+  | 'title'
+  | 'cutscene'
+  | 'briefing'
+  | 'event'
+  | 'playing'
+  | 'result'
+  | 'dayEnd'
+  | 'upgrades'
+  | 'ending';
 
 export interface DayStats {
   correct: number;
@@ -32,6 +33,8 @@ export interface GameState {
   phase: Phase;
   day: number;
   coins: number;
+  /** Melhorias do cartório compradas até agora. */
+  upgrades: Upgrades;
   rules: DayRules;
   queue: Applicant[];
   index: number;
@@ -56,6 +59,9 @@ export type Action =
   | { type: 'DECIDE'; decision: Decision }
   | { type: 'NEXT' }
   | { type: 'NEXT_DAY' }
+  | { type: 'OPEN_UPGRADES' }
+  | { type: 'BUY_UPGRADE'; id: UpgradeId }
+  | { type: 'CLOSE_UPGRADES' }
   | { type: 'TICK' }
   | { type: 'CHOOSE_EVENT'; option: number }
   | { type: 'EVENT_DONE' }
@@ -72,11 +78,12 @@ const emptyStats = (): DayStats => ({
   lost: 0,
 });
 
-function freshGame(save: SaveData | null, day = 1, coins = START_COINS): GameState {
+function freshGame(save: SaveData | null, day = 1, coins = START_COINS, upgrades: Upgrades = {}): GameState {
   return {
     phase: 'title',
     day,
     coins,
+    upgrades,
     rules: getDayRules(day),
     queue: [],
     index: 0,
@@ -92,11 +99,11 @@ function freshGame(save: SaveData | null, day = 1, coins = START_COINS): GameSta
 
 /** Fecha o dia: desconta perdas e despesas e decide se o cartório segue. */
 function endOfDay(state: GameState, lost: number): GameState {
-  const expenses = dailyExpenses(state.day);
+  const expenses = expensesFor(state.day, state.upgrades);
   const coins = state.coins - lost - expenses;
   const survived = coins >= 0;
   // Depois do último dia o plantão continua, então o save sempre aponta para o dia seguinte.
-  const save: SaveData | null = survived ? { day: state.day + 1, coins } : state.save;
+  const save: SaveData | null = survived ? { day: state.day + 1, coins, upgrades: state.upgrades } : state.save;
 
   return {
     ...state,
@@ -150,7 +157,7 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'CONTINUE': {
       if (!state.save) return state;
-      const resumed = freshGame(state.save, state.save.day, state.save.coins);
+      const resumed = freshGame(state.save, state.save.day, state.save.coins, state.save.upgrades);
       const scene = cutsceneForDay(state.save.day);
       return scene ? playCutscene(resumed, scene, 'briefing') : { ...resumed, phase: 'briefing' };
     }
@@ -175,7 +182,7 @@ export function reducer(state: GameState, action: Action): GameState {
       const applicant = state.queue[state.index];
       if (!applicant) return state;
 
-      const result = judge(evaluate(applicant, state.rules), action.decision);
+      const result = judge(evaluate(applicant, state.rules), action.decision, state.upgrades);
       const stats = { ...state.stats };
       if (result.verdict === 'perfect') stats.correct += 1;
       else if (result.verdict === 'partial') stats.partial += 1;
@@ -199,7 +206,7 @@ export function reducer(state: GameState, action: Action): GameState {
     case 'TICK': {
       if (state.phase !== 'playing') return state;
       const elapsed = state.elapsed + 1;
-      if (elapsed >= timeLimit(state.rules.applicants)) {
+      if (elapsed >= timeLimitFor(state.rules.applicants, state.upgrades)) {
         // O relógio zerou: quem ainda não foi atendido vai embora.
         const unattended = state.queue.length - state.index;
         return endOfDay({ ...state, elapsed }, unattended * LATE_PENALTY);
@@ -207,7 +214,7 @@ export function reducer(state: GameState, action: Action): GameState {
       return {
         ...state,
         elapsed,
-        arrived: Math.min(state.queue.length, START_QUEUE + Math.floor(elapsed / ARRIVAL_EVERY)),
+        arrived: Math.min(state.queue.length, START_QUEUE + Math.floor(elapsed / arrivalEvery(state.upgrades))),
       };
     }
 
@@ -218,6 +225,28 @@ export function reducer(state: GameState, action: Action): GameState {
 
       return enterDay(state, state.day + 1);
     }
+
+    case 'OPEN_UPGRADES': {
+      // A loja só abre com o cartório de pé e o balcão fechado.
+      if (state.phase !== 'dayEnd' || state.coins < 0) return state;
+      return { ...state, phase: 'upgrades' };
+    }
+
+    case 'BUY_UPGRADE': {
+      if (state.phase !== 'upgrades') return state;
+      const bought = buyUpgrade(state.upgrades, action.id, state.coins);
+      if (!bought) return state;
+      return {
+        ...state,
+        coins: bought.coins,
+        upgrades: bought.upgrades,
+        save: state.save ? { ...state.save, coins: bought.coins, upgrades: bought.upgrades } : null,
+      };
+    }
+
+    case 'CLOSE_UPGRADES':
+      if (state.phase !== 'upgrades') return state;
+      return { ...state, phase: 'dayEnd' };
 
     case 'CHOOSE_EVENT': {
       if (state.phase !== 'event' || state.eventOutcome !== null) return state;

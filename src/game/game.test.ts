@@ -138,7 +138,7 @@ describe('fluxo do jogo', () => {
 
 describe('eventos de história', () => {
   it('um evento antecede o dia certo e a escolha altera o saldo', () => {
-    let s: GameState = { ...createInitialState(), phase: 'dayEnd', day: 1, coins: 20, save: { day: 2, coins: 20 } };
+    let s: GameState = { ...createInitialState(), phase: 'dayEnd', day: 1, coins: 20, save: { day: 2, coins: 20, upgrades: {} } };
     s = reducer(s, { type: 'NEXT_DAY' });
     expect(s.phase).toBe('event');
     expect(s.day).toBe(2);

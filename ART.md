@@ -74,7 +74,7 @@ Regra: animação nova só entra na lista com status `planejado`, antes do desen
 ## 10. Fase 4: balcão e objetos
 
 - Arte gerada por `tools/gen_counter_art.py` em `public/art/balcao/`: fundo (céu, montanhas, torre, portão), frente (divisória, tampo, objetos), lampião e a folha do carimbo (4 quadros).
-- O balcão usa um único canvas/Application (`PixiStage`), com 4 camadas em ordem: `fundo`, `viajante`, `chuva`, `frente` (`render/stage.ts`). `CounterPixelScene` (`back`/`front`), `PixelPortrait` e `RainLayer` só adicionam e removem o próprio Container; nenhum cria canvas.
+- O balcão usa um único canvas/Application (`PixiStage`), com 4 camadas em ordem: `fundo`, `viajante`, `chuva`, `frente` (`render/stage.ts`). `CounterPixelScene` (`back`/`front`), `PixelPortrait` e `WeatherLayer` só adicionam e removem o próprio Container; nenhum cria canvas.
 - O viajante reproduz no Pixi o que era CSS: posição (`stageLayout.ts`), brilho/saturação (ColorMatrixFilter), halo azul (gradiente) e a entrada `emerge`. A abertura (cutscene) continua com Application próprio, porque a câmera dela é CSS no DOM.
 - Animações em `counterAnim.ts` (testadas): lampião balançando, chama tremendo na vela e no lampião, runa e névoa, janela da torre, relâmpago a cada 11 s.
 - Carimbo: quando a decisão é tomada, o quadro de impacto aparece no mesmo instante em que o som toca (`playResult`), depois a base volta e o carimbo repousa.
@@ -161,3 +161,69 @@ Medição: no navegador, o atraso do tremor do CSS é de 1700 ms, igual a `STAMP
 - Balcão (`fitCounter`, `stageLayout.ts`): `p` = CSS px por pixel lógico (a escala inteira do viajante); `m` = escala inteira da cena dentro do canvas lógico. O pixel da cena na tela é `p × m` px de CSS. Todo desenho do balcão usa unidades lógicas (`app.screen`).
 - Abertura (`fitCutscene`): `p` inteiro, e o resto fracionário do encaixe fica na escala da arte *dentro* do canvas lógico. A câmera é desenhada em baixa resolução, então o movimento não varia 1 px por causa da densidade da tela. O encaixe é o mesmo `min()` de antes; a escala da arte na tela continua fracionária em quadros que não são múltiplos de 320×180, mas é estável.
 - Efeitos: a chuva fica `p` vezes mais grossa (pixel art); a velocidade das gotas é compensada por `1/p`. O brilho do viajante é um gradiente ampliado por CSS.
+
+## 15. Fase 11: oficina de melhorias animada
+
+- Arte gerada por `tools/gen_upgrade_art.py` (reproduzível, confere paleta e ausência de meio-tom ao salvar), em `public/art/ui/`. Cada arquivo é uma **folha horizontal** com os quadros lado a lado:
+
+| Arquivo | Quadro | Quadros | fps | Animação |
+| --- | --- | --- | --- | --- |
+| `upg-carimbo.png` | 24×24 | 4 | 4 | carimbo sobe, bate na almofada e solta faísca |
+| `upg-ampulheta.png` | 24×24 | 4 | 4 | a areia desce e o fio cai |
+| `upg-seguro.png` | 24×24 | 4 | 4 | brilho diagonal atravessa o escudo |
+| `upg-cofre.png` | 24×24 | 4 | 4 | chama da vela tremendo sobre os pergaminhos |
+| `upg-balcao.png` | 24×24 | 4 | 4 | a corda da fila balança |
+| `icon-moeda-spin.png` | 16×16 | 6 | 8 (HUD: 4) | moeda girando |
+| `fx-burst.png` | 32×32 | 6 | 12, uma vez | faísca ao comprar |
+| `shop-banner.png` | 160×48 | 4 | 5 | prateleira com vela, estrelas, névoa na janela e poeira |
+
+- Animação por **CSS `steps()`**, sem canvas e sem Pixi: `PixelSprite.tsx` (props `frames`, `w`, `h`, `scale`, `fps`, `once`) calcula as variáveis CSS e o `@keyframes sprite-play` desliza o `background-position`. Escala sempre inteira, com `image-rendering: pixelated`.
+- Movimento reduzido: sem animação, fica o 1º quadro (o banner também).
+- O ícone de melhoria no nível máximo anima mais rápido (6 fps) e o cartão ganha moldura dourada.
+- Para uma melhoria nova: desenhe a função em `ICONS` do gerador (4 quadros 24×24), rode o script e use o mesmo id em `UPGRADES`. O teste da loja falha se faltar a folha.
+- Não vi o resultado rodando no navegador (sem rede para instalar as dependências); conferi os quadros ampliados em PNG. Vale olhar a loja e o HUD no navegador.
+
+## 16. Fase 12: mãos e acabamento dos personagens
+
+- A folha de cada espécie passou de 11 para **19 camadas** de 64×72. As 11 primeiras seguem iguais (o `Portrait` de reserva assume o contorno no índice 10); as novas vêm depois:
+
+| Camada | Tipo | Para quê |
+| --- | --- | --- |
+| `eyewhite` | fixa | brancos laterais do olho, pupila e brilho; o centro 3×3 fica livre para a íris tingida |
+| `shade` | fixa, com alfa | capa mais escura à direita, luz no ombro, gola em V, sombra sob o queixo, bochechas, nariz, textura de pedra no Golem. Fica **atrás do cabelo** |
+| `armL`, `armR` | máscara da capa | mangas, do ombro ao punho |
+| `handL`, `handR` | máscara da pele | mãos pelo dorso, polegar e três dedos |
+| `lineL`, `lineR` | fixa | contorno, pulseira, juntas, garras e detalhes de cada braço |
+
+- As sobrancelhas entram em `details`.
+- **Mãos por espécie** (`make_hand` em `tools/gen_characters.py`): Elfo com dedos longos, Anão com anel de ouro, Goblin e Draconato com garras (o Draconato também tem escamas), Tritão com membrana azul entre os dedos, Fada pequena com faíscas, Golem de pedra com rachaduras douradas e Espectro com fiapos de névoa.
+- Cada lado é um `Container` próprio no `PixelPortrait` (manga + mão + linha), por cima do corpo e por baixo da fumaça/respingo. Posição: antebraços nas laterais, mãos pousadas para dentro, acima da linha do tampo (~linha 69 do retrato).
+- Animação (`handOffsets` em `characterAnim.ts`, pura e testada):
+  - **ocioso:** a mão direita bate os dedos a cada 7 s e a esquerda a cada 11 s;
+  - **aprovar:** a direita sobe e acena, a esquerda mal se mexe;
+  - **negar:** as duas sobem e se afastam do centro, palmas para fora;
+  - as mãos acompanham 60% do movimento do corpo (100% no Espectro, que flutua).
+- Ferramenta de conferência: `python3 tools/preview_characters.py [saida.png] [escala]` tinge e empilha as camadas como o jogo faz e marca a linha do tampo.
+- Para espécie nova: além do que a seção 9 pede, escolha os parâmetros de `make_hand` e acrescente a espécie em `HAND_BY_SPECIES`.
+- Não vi o resultado no jogo rodando (sem rede para instalar as dependências): conferi pela prévia. Vale olhar o balcão no navegador, principalmente o gesto de negar e a altura das mãos em escalas diferentes.
+
+## Clima por dia (Fase 13)
+
+- `src/game/weather.ts` define 9 climas (chuva, noite limpa, nevasca, poente dourado, tempestade, aurora, cinzas ao vento, névoa densa, chuva de estrelas). `weatherForDay(dia)` escolhe um por dia: o dia 1 é a chuva de sempre, o ciclo se repete e dias seguidos nunca têm o mesmo clima.
+- `counter-back.png` tem o céu (linhas 0 a 39) **transparente**: o céu é desenhado por `render/sky.ts` (faixas, estrelas, lua, sol, aurora, meteoros e nuvens à deriva), atrás da arte. Para um novo clima, basta uma entrada em `WEATHERS`.
+- `render/WeatherLayer.tsx` cuida das partículas (chuva, neve, cinzas, brasas, folhas, vaga-lumes). O relâmpago e a densidade da névoa também vêm do clima.
+- Com `prefers-reduced-motion`, o céu fica parado e não há partículas.
+
+## Loja de Skins (Fase 14)
+
+- `src/game/skins.ts` define 7 skins (Cartório Clássico, Âmbar de Vela, Maré Profunda, Bosque de Musgo, Rubi das Cinzas, Luar de Prata, Neon Arcano). Comprar uma skin custa **Selos**, moeda à parte das moedas do expediente: 1 Selo por dia fechado sem falir, 3 a cada quinto dia e 5 ao chegar ao fim da campanha. Skins e Selos ficam em `cartorio-arcano:skins` (sobrevivem a falência e novo jogo).
+- Uma skin troca: as variáveis CSS da interface (`--night`, `--gold`, `--parchment`, `--warm`…, aplicadas em `<html>`), o céu e as nuvens do clima do dia (`skinWeather`), a tinta da arte do balcão (`scene.artTint`/`frontTint`) e a cor da placa do guichê.
+- `components/SkinShop.tsx` é a loja (botão "🎨 Skins" no topo, fora do expediente), com "Experimentar": a prévia vale até fechar a loja. Para criar uma skin nova, basta uma entrada em `SKINS`.
+- Cores fixas do `styles.scss` (ouro, violeta, pergaminho, maré, luz quente) agora usam essas variáveis; use `var(--gold)` ou `color-mix(...)` em vez de hexadecimais ao estilizar.
+
+## Trajes dos viajantes (Fase 15)
+
+- `src/game/suits.ts` define 8 trajes (Original, Capas de Inverno, Retrato de Tinta, Folhagem, Gala Dourada, Véus de Sombra, Prisma de Aurora, Carnaval das Brumas). `dressLook(look, traje)` só troca **cores** (capa, cabelo, olhos e, no traje de tinta, a pele); espécie, estilo de cabelo, barba e regras do jogo não mudam. Cada viajante recebe sempre a mesma cor do traje (escolha por hash do próprio look).
+- `PixelPortrait` lê o traje de `SuitContext` e também tinge o halo em volta do viajante (`suit.halo`).
+- Os trajes são comprados com Selos, na aba "Viajantes" da Loja de Skins, e guardados em `cartorio-arcano:skins` (`suits` e `suit`; saves antigos ganham o traje original). `components/SuitSamples.tsx` desenha três viajantes de exemplo num canvas 2D como prévia, com o mesmo método de tinta das máscaras brancas (`source-in`).
+- Para criar um traje novo, basta uma entrada em `SUITS` (listas de cores `#rrggbb`).
